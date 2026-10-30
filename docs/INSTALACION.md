@@ -4,6 +4,8 @@
 
 Se requiere Ubuntu ARM64 o x86_64 con Python 3, acceso administrativo, Internet y el Gateway VXG ya instalado en Docker. Comprueba los nombres de las interfaces con `ip -4 addr` y los contenedores con `sudo docker ps`.
 
+Si el equipo parte de cero, completa primero [la instalación de VXG](INSTALACION-VXG.md). El módulo `vxg` funciona sin perfil VPN y utiliza credenciales locales del registro del proveedor.
+
 En FortiGate debe existir un túnel con la identidad, clave compartida y selectores de este equipo. Las rutas y políticas deben permitir el tráfico de FortiClient hacia la red de administración del Gateway y de regreso. Se usa salida UDP 500 y 4500 para IPsec; SSH requiere TCP 22 y Cockpit TCP 9090 dentro de la VPN.
 
 ## Perfil

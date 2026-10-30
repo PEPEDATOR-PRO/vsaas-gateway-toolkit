@@ -27,3 +27,4 @@ jobs:
           for file in scripts/*.sh dist/*.sh; do
             bash -n "$file"
           done
+          find vendor -name '*.sh' -exec bash -n {} \;

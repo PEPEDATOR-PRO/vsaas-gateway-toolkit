@@ -12,7 +12,7 @@ except ImportError:
     from profile import load_profile
 
 ROOT=Path(__file__).resolve().parents[1]
-MODULES=['vpn','ssh','cockpit','paneles','resumen','observacion','todo']
+MODULES=['vxg','vpn','ssh','cockpit','paneles','resumen','observacion','todo']
 
 
 def plan(module,profile):
@@ -25,7 +25,19 @@ def main():
     parser.add_argument('module',choices=MODULES)
     parser.add_argument('--config',default=str(ROOT/'config/equipo.json'))
     parser.add_argument('--dry-run',action='store_true')
-    args=parser.parse_args();profile=load_profile(args.config,ready=not args.dry_run)
+    parser.add_argument('--vxg-env',help='Archivo local privado de credenciales del proveedor para el módulo vxg')
+    args=parser.parse_args()
+    if args.module=='vxg':
+        project='camera_agent_gateway'
+        if Path(args.config).is_file():project=load_profile(args.config,ready=False)['compose_project']
+        if args.dry_run:
+            print('Simulación: VXG 1.0.16; credenciales locales; proyecto '+project+'. No se ejecutó Docker ni se leyó el archivo privado.')
+            return
+        command=[sys.executable,str(ROOT/'scripts/install_vxg.py'),'--project',project]
+        if args.vxg_env:command+=['--registry-env',args.vxg_env]
+        subprocess.run(command,check=True)
+        return
+    profile=load_profile(args.config,ready=not args.dry_run)
     modules=plan(args.module,profile)
     print('Módulos: '+', '.join(modules),flush=True)
     print('Equipo: '+profile['vpn_id']+' · IP de administración: '+profile['vpn_admin_ip'],flush=True)

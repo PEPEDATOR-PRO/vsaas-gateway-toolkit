@@ -1,5 +1,12 @@
 # Cambios
 
+## 0.2.0
+
+- Importación del paquete de scripts VXG 1.0.16 con hashes de procedencia y exclusión del `.env` original.
+- Módulo `vxg` para equipos nuevos, sin depender todavía de la configuración VPN.
+- Credenciales de descarga mediante entrada interactiva o archivo privado; autenticación temporal de Docker.
+- Guía de instalación desde cero, contraseña local de administrador y pruebas de los límites de credenciales.
+
 ## 0.1.0
 
 - Organización inicial del toolkit con configuración por equipo y sin credenciales incluidas.

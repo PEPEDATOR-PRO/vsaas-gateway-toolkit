@@ -1,0 +1,24 @@
+services:
+  app:
+    env_file:
+      - ./.env
+    image: ${UPLINK_GATEWAY_IMAGE_REPOSITORY:-gitlab.vxg.io:5050/vxg/cvp/onvif-uplink/camera-agent-web-server/uplink-gateway}:${CAMERA_AGENT_GATEWAY_VERSION:-latest}
+    restart: unless-stopped
+    command: sh -c "python server/manage.py migrate && python server/manage.py collectstatic --noinput && python server/manage.py ensure_superuser_token && /code/initialize_cameras.sh && python server/manage.py runserver 0.0.0.0:8000 > /var/log/server/server-access.log 2>&1"
+    volumes:
+      - static-data:/vol/static
+      - app-data:/vol/data
+
+  nginx:
+    image: ${UPLINK_GATEWAY_NGINX_IMAGE_REPOSITORY:-gitlab.vxg.io:5050/vxg/cvp/onvif-uplink/camera-agent-web-server/uplink-gateway-nginx}:${CAMERA_AGENT_GATEWAY_VERSION:-latest}
+    restart: unless-stopped
+    volumes:
+      - static-data:/vol/static
+    ports:
+      - 80:80
+    depends_on:
+      - app
+
+volumes:
+  static-data:
+  app-data:

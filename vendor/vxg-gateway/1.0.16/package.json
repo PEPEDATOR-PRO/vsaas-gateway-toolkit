@@ -1,0 +1,43 @@
+{
+  "vendor": "VXG",
+  "version": "1.0.16",
+  "source_archive": "docker_gateway_package_1.0.16_261013.zip",
+  "source_sha256": "543a746117e3cc4ffc6e497967778faccd463d949c20dc658bec790d0eb370a5",
+  "files": [
+    {
+      "path": "start.sh",
+      "sha256": "a1664ca7d79dcc2d1f41502b902646850dc0a95a391b8c1603c9507098fee360"
+    },
+    {
+      "path": "stop.sh",
+      "sha256": "a4a3edf97c163221ef1904fef03857e4776da183c8e22f89f7b30f97b1502373"
+    },
+    {
+      "path": "update.sh",
+      "sha256": "567531ce36f8bb3b2a84ba321f6f683d327a914a672b3687034a104ce30080d0"
+    },
+    {
+      "path": "env_setup.sh",
+      "sha256": "131aac04fb7212c609652f789d91226fbc90b330b2c9e92993666d15c7ce4ba7"
+    },
+    {
+      "path": "docker-compose.yml",
+      "sha256": "ea1be72b8841f126e664aa9f0bf804b708774eb5ad324dc044c6c1ad813fe3f6"
+    },
+    {
+      "path": "camera_agent_gateway_arm64.version",
+      "sha256": "d729635c4f58b053ec7871672ec51a0fbfb80312989091e1516b7ee4a466c1fb"
+    },
+    {
+      "path": "camera_agent_gateway_x64.version",
+      "sha256": "fae3a9e172fb1b3f69743e18fb4142cbb715ea88b9c8d838f4e6b88f0527d7be"
+    }
+  ],
+  "excluded": [
+    ".env"
+  ],
+  "notes": [
+    "Los scripts del proveedor se conservan como referencia; el toolkit no los ejecuta automaticamente.",
+    "Las imagenes se descargan del registro autenticado, no estan incluidas en este repositorio."
+  ]
+}

@@ -6,7 +6,13 @@ El código y los instaladores viven en este repositorio. Los datos de cada equip
 
 ## Instalación en otro equipo
 
-Primero instala Ubuntu y el paquete Docker del Gateway mediante el procedimiento de VXG. El toolkit agrega las funciones de administración a esa instalación.
+Empieza con Ubuntu y Docker. El repositorio incluye ahora los scripts del paquete VXG 1.0.16, una plantilla sin credenciales y un módulo de instalación para equipos nuevos:
+
+```bash
+sudo python3 scripts/install.py vxg
+```
+
+El módulo solicita las credenciales del registro de VXG y una contraseña de administrador. No necesita todavía el perfil VPN. Sigue [la guía desde cero](docs/INSTALACION-VXG.md) y valida el servicio principal antes de preparar la administración.
 
 En Ubuntu, abre la carpeta del proyecto y prepara el perfil:
 
@@ -30,6 +36,7 @@ Consulta [la guía de instalación](docs/INSTALACION.md) antes de preparar el pr
 
 | Módulo | Resultado |
 | --- | --- |
+| `vxg` | Descarga y arranque inicial de VXG 1.0.16 con credenciales locales |
 | `vpn` | strongSwan con conexión IPsec y arranque automático |
 | `ssh` | Acceso remoto con OpenSSH |
 | `cockpit` | Panel web en la IP de administración, puerto 9090 |
@@ -50,6 +57,7 @@ config/              Perfil de ejemplo y perfiles locales ignorados por Git
 scripts/             Validación y ejecución modular de instaladores
 src/cockpit/         Escáner, tráfico, salud y adaptación de Vista global
 src/observacion/     Recopilador de 24 horas y su servicio systemd
+vendor/vxg-gateway/  Scripts del proveedor y plantilla sin credenciales
 tools/               Generación de instaladores y pruebas de interfaz
 docs/                Instalación, operación y mantenimiento
 dist/                Instaladores generados y sumas SHA256
@@ -94,6 +102,7 @@ La prueba de 24 horas continúa en el equipo después de cerrar Cockpit. Sus dat
 ## Documentación
 
 - [Instalación y parámetros por equipo](docs/INSTALACION.md)
+- [Instalación de VXG desde cero](docs/INSTALACION-VXG.md)
 - [Operación, diagnósticos y prueba de 24 horas](docs/OPERACION.md)
 - [Mantenimiento y publicación de versiones](docs/MANTENIMIENTO.md)
 - [Fuentes técnicas](docs/FUENTES.md)

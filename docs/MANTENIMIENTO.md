@@ -35,4 +35,4 @@ Las versiones anteriores de la adaptación y los paneles se guardan en `/var/bac
 
 El repositorio debe crearse con visibilidad privada. Verifica la cuenta propietaria y que el remoto coincida con la URL del repositorio antes de subir la primera versión. La automatización solo prueba y genera paquetes; no instala en Gateways.
 
-Los perfiles reales, PSK, claves SSH, capturas de clientes e informes operativos deben mantenerse fuera del historial. Un repositorio privado no sustituye ese control. No se redistribuyen imágenes ni paquetes propietarios de VXG.
+Los perfiles reales, PSK, claves SSH, capturas de clientes e informes operativos deben mantenerse fuera del historial. Un repositorio privado no sustituye ese control. Se conservan los scripts recibidos de VXG como referencia de versión; las imágenes y el `.env` original con credenciales no se publican.
