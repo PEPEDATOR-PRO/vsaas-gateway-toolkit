@@ -1,5 +1,10 @@
 # Cambios
 
+## Próxima actualización
+
+- Asistente VPN con leftid, subred CIDR y clave compartida local; IP de administración calculada automáticamente y parámetros centrales preconfigurados.
+- El perfil generado se reutiliza para SSH, Cockpit y paneles y no guarda la clave compartida.
+
 ## 0.2.0
 
 - Importación del paquete de scripts VXG 1.0.16 con hashes de procedencia y exclusión del `.env` original.

@@ -25,8 +25,10 @@ def main():
     parser.add_argument('module',choices=MODULES)
     parser.add_argument('--config',default=str(ROOT/'config/equipo.json'))
     parser.add_argument('--dry-run',action='store_true')
+    parser.add_argument('--interactive',action='store_true',help='Configurar VPN solicitando leftid, subred y PSK local')
     parser.add_argument('--vxg-env',help='Archivo local privado de credenciales del proveedor para el módulo vxg')
     args=parser.parse_args()
+    if args.interactive and args.module!='vpn':parser.error('--interactive solo se utiliza con vpn')
     if args.module=='vxg':
         project='camera_agent_gateway'
         if Path(args.config).is_file():project=load_profile(args.config,ready=False)['compose_project']
@@ -37,7 +39,17 @@ def main():
         if args.vxg_env:command+=['--registry-env',args.vxg_env]
         subprocess.run(command,check=True)
         return
-    profile=load_profile(args.config,ready=not args.dry_run)
+    interactive=args.module=='vpn' and (args.interactive or not Path(args.config).is_file())
+    if interactive:
+        if not args.dry_run and (getattr(os,'geteuid',lambda:-1)()!=0 or not sys.platform.startswith('linux')):
+            raise SystemExit('Ejecuta con sudo en Ubuntu.')
+        try:
+            from .vpn_wizard import configure
+        except ImportError:
+            from vpn_wizard import configure
+        profile=configure(args.config,write=not args.dry_run)
+    else:
+        profile=load_profile(args.config,ready=not args.dry_run)
     modules=plan(args.module,profile)
     print('Módulos: '+', '.join(modules),flush=True)
     print('Equipo: '+profile['vpn_id']+' · IP de administración: '+profile['vpn_admin_ip'],flush=True)
@@ -52,6 +64,7 @@ def main():
     env={**os.environ,'VPN_ID':profile['vpn_id'],'VPN_RED_LOCAL':profile['vpn_local_subnet'],
          'VPN_IP_ADMIN':profile['vpn_admin_ip'],'VPN_SERVIDOR':profile['vpn_server'],
          'VPN_RED_REMOTA':profile['vpn_remote_subnet'],'LAN_INTERFACE':profile['lan_interface']}
+    env['VPN_INTERACTIVE_VALIDATED']='1' if interactive else '0'
     for module in modules:
         print('Instalando '+module+'…',flush=True)
         if module=='vpn':command=['bash',str(ROOT/'scripts/install-vpn.sh')]

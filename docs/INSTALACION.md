@@ -10,6 +10,22 @@ En FortiGate debe existir un túnel con la identidad, clave compartida y selecto
 
 ## Perfil
 
+### Configuración rápida de VPN para un equipo nuevo
+
+```bash
+sudo python3 scripts/install.py vpn --interactive
+```
+
+Solo solicita `leftid` (sin `@`), la subred asignada con prefijo CIDR y la clave compartida sin mostrarla. El túnel debe estar creado en FortiGate con esos datos y no estar siendo utilizado por otro Gateway.
+
+El asistente usa el servidor central `35.161.111.223` y la red remota `172.31.0.0/17`. Calcula la IP de administración como el primer host de la subred: por ejemplo, `10.254.0.0/29` da `10.254.0.1`. Esa dirección debe estar disponible para este equipo. La subred se introduce como dirección de red, no como IP de host.
+
+Guarda el perfil sin clave en `config/equipo.json` (ignorado por Git); los demás módulos reutilizan ese perfil. Sin un perfil existente, `vpn` inicia el asistente automáticamente. `--interactive --dry-run` consulta solo identidad y subred, muestra el resultado y no guarda ni instala nada. La clave se solicita únicamente durante la instalación real y se almacena en el archivo protegido de strongSwan.
+
+Para otros servidores, otra IP de administración o ajustes avanzados, utiliza el perfil manual de abajo sin `--interactive`. No uses el asistente para migrar un túnel activo sin revisar la dirección anterior en `lo`.
+
+### Perfil manual
+
 ```bash
 cp config/equipo.example.json config/equipo.json
 nano config/equipo.json

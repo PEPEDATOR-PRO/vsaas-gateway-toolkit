@@ -34,8 +34,10 @@ PY
 
 printf 'ID: %s\nRed local: %s\nIP de administracion: %s\nServidor: %s\nRed central: %s\n' \
     "$VPN_ID" "$VPN_RED_LOCAL" "$VPN_IP_ADMIN" "$VPN_SERVIDOR" "$VPN_RED_REMOTA"
-read -r -p 'Datos unicos y autorizados en FortiGate. Escribe SI para continuar: ' vpn_confirm </dev/tty
-[ "$vpn_confirm" = 'SI' ] || exit 1
+if [ "${VPN_INTERACTIVE_VALIDATED:-0}" != '1' ]; then
+    read -r -p 'Datos unicos y autorizados en FortiGate. Escribe SI para continuar: ' vpn_confirm </dev/tty
+    [ "$vpn_confirm" = 'SI' ] || exit 1
+fi
 read -r -s -p 'Clave compartida de este identificador: ' vpn_key </dev/tty
 printf '\n' >/dev/tty
 [ -n "$vpn_key" ] || { echo 'Clave vacia. Cancelado.'; exit 1; }

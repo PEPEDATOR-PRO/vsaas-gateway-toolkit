@@ -9,6 +9,10 @@ FIELDS={'vpn_id','vpn_local_subnet','vpn_admin_ip','vpn_server','vpn_remote_subn
 
 def load_profile(path,ready=True):
     data=json.loads(Path(path).read_text(encoding='utf-8'))
+    return validate_profile(data,ready)
+
+
+def validate_profile(data,ready=True):
     if not isinstance(data,dict):raise ValueError('La configuración debe ser un objeto JSON.')
     if set(data)!=FIELDS:raise ValueError('Faltan campos o hay campos no admitidos. No guardes contraseñas, PSK o tokens en el perfil.')
     for key in FIELDS-{'overview_overlay'}:
