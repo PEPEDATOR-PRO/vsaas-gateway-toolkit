@@ -1,0 +1,11 @@
+{
+  "version": "1.3.0",
+  "requires": {"cockpit": "250"},
+  "menu": {
+    "traffic": {"label": "Tráfico de red", "path": "traffic.html", "order": 15},
+    "health": {"label": "Salud Vsaas", "path": "health.html", "order": 16}
+  },
+  "tools": {
+    "scanner": {"label": "Escáner de red", "path": "index.html", "order": 85}
+  }
+}

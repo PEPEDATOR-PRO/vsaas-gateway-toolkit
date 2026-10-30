@@ -1,0 +1,10 @@
+{
+  "vpn_id": "CAMBIAR_ID_EN_FORTIGATE",
+  "vpn_local_subnet": "10.254.0.0/29",
+  "vpn_admin_ip": "10.254.0.1",
+  "vpn_server": "203.0.113.10",
+  "vpn_remote_subnet": "172.20.0.0/16",
+  "lan_interface": "eth0",
+  "compose_project": "camera_agent_gateway",
+  "overview_overlay": false
+}

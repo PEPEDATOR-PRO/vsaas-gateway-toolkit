@@ -1,0 +1,30 @@
+[Unit]
+Description=Observacion de trafico y salud Vsaas durante 24 horas
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /usr/local/libexec/vsaas-observacion.py ejecutar
+Restart=on-failure
+RestartSec=15s
+TimeoutStopSec=40s
+Nice=10
+CPUWeight=10
+IOWeight=10
+MemoryHigh=128M
+MemoryMax=192M
+TasksMax=64
+CPUAccounting=yes
+MemoryAccounting=yes
+IOAccounting=yes
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=full
+ProtectHome=read-only
+PrivateTmp=yes
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

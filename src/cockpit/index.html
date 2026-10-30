@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Escáner de red</title>
+  <link rel="stylesheet" href="scanner.css">
+  <script src="../base1/cockpit.js"></script>
+  <script defer src="scanner.js"></script>
+</head>
+<body>
+  <main>
+    <header><p class="eyebrow">HERRAMIENTAS DEL GATEWAY</p><h1>Escáner de red</h1>
+      <p>Encuentra equipos en la red local desde este Gateway.</p></header>
+    <section class="controls" aria-label="Opciones de escaneo">
+      <div class="field"><label for="interface">Conexión de red</label><select id="interface" disabled><option>Cargando conexiones…</option></select></div>
+      <button id="scan" disabled>Buscar equipos</button>
+      <button id="reload" class="secondary">Actualizar conexiones</button>
+    </section>
+    <p id="status" role="status" aria-live="polite">Cargando conexiones de red…</p>
+    <div id="error" role="alert" hidden></div>
+    <section class="results" aria-label="Equipos encontrados">
+      <div class="toolbar"><div><strong id="count">0 equipos</strong><span id="time"></span></div>
+        <div class="filters"><label for="filter" class="sr-only">Filtrar resultados</label><input id="filter" type="search" placeholder="Filtrar por IP, MAC o fabricante"><button id="export" class="secondary" disabled>Exportar CSV</button></div></div>
+      <div class="table-scroll"><table><thead><tr><th>Dirección IP</th><th>Dirección MAC</th><th>Fabricante</th><th>Servicios</th></tr></thead><tbody id="rows"><tr><td colspan="4" class="empty">Elige una conexión y pulsa Buscar equipos.</td></tr></tbody></table></div>
+    </section>
+    <p class="note">El escaneo se ejecuta solo al pulsar el botón. La búsqueda ARP detecta equipos del segmento local seleccionado; no recorre la VPN ni otras redes.</p>
+    <p class="note">Comprobar servicios consulta TCP 80, 443, 554, 8000 y 8080. Los puertos abiertos son pistas y no confirman que el equipo sea una cámara. Activa el acceso administrativo de Cockpit si se solicita.</p>
+    <details><summary>Ver salida del último escaneo</summary><pre id="raw">Todavía no hay un escaneo.</pre></details>
+  </main>
+</body>
+</html>

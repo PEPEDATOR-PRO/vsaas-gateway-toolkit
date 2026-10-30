@@ -1,0 +1,86 @@
+# Operación y diagnóstico
+
+## Acceso habitual
+
+Conecta FortiClient y utiliza la IP de administración del perfil:
+
+- Gateway: `http://IP_ADMIN`
+- Cockpit: `https://IP_ADMIN:9090`
+- SSH: `ssh USUARIO@IP_ADMIN`
+
+Escáner y tráfico trabajan sobre la red seleccionada del Gateway. No dependen de que esa red sea accesible directamente desde la computadora del administrador.
+
+## Salud Vsaas
+
+Consulta bajo demanda, con actualización cada 30 segundos opcional. Comprueba contenedores y HEALTHCHECK, reinicios, políticas Docker, recursos, interfaz HTTP, CSS, procesos Uplink, sockets TCP 443 de los proxies, conteos de cámaras en SQLite, persistencia y señales resumidas de registros.
+
+Las cámaras configuradas o habilitadas no equivalen a cámaras online. Los mensajes históricos de WebSocket establecido tampoco prueban una conexión actual. Para confirmar video y estado en nube hace falta comprobar la plataforma VXG por separado.
+
+## Prueba de 24 horas
+
+Inicia esta prueba cuando las cámaras estén transmitiendo y quieras medir tráfico y carga:
+
+```bash
+sudo python3 scripts/install.py observacion --config config/equipo.json
+```
+
+El recopilador registra tráfico y recursos cada 5 segundos y salud cada 60 segundos. Se ejecuta como `vsaas-observacion.service`, continúa sin navegador y reanuda hasta la fecha final original tras un reinicio. La sesión se detiene al terminar o si alcanza el límite de almacenamiento.
+
+```bash
+sudo vsaas-observacion estado
+sudo systemctl status vsaas-observacion --no-pager
+```
+
+Límites por prueba: 128 MiB de registros, memoria del grupo de procesos limitada a 192 MiB y detención si quedan menos de 512 MiB libres. La memoria observada incluye caché de archivos; el límite no es una estimación de consumo. El archivo comprimido de exportación ocupa espacio adicional.
+
+Los registros son `trafico-recursos.jsonl`, `salud.jsonl`, `eventos.jsonl` cuando corresponde, y `resumen.json`. Este último contiene medias, picos, reinicios, tamaño real de JSONL, proyección de almacenamiento y notas sobre lo que mide cada indicador.
+
+```bash
+# Detener antes, conservando los registros
+sudo systemctl stop vsaas-observacion
+
+# Exportar preferiblemente después de finalizar
+sudo vsaas-observacion exportar
+```
+
+El exportador indica la ruta y el tamaño del archivo. Las consultas internas a Docker se contabilizan en los contenedores, mientras que el grupo del recopilador contabiliza sus propios procesos. Las variaciones de CPU no prueban por sí solas que el monitor las cause; compara con otra prueba de carga equivalente para estimar el impacto.
+
+## Errores conocidos
+
+| Síntoma | Acción |
+| --- | --- |
+| VPN `AUTH_FAILED` | Comprobar PSK y selección de Peer ID en FortiGate; no cambiar cifrados al azar |
+| Panel nuevo no aparece | Cerrar sesión, abrir de nuevo y consultar `cockpit-bridge --packages` |
+| Lista de red vacía | Confirmar IPv4 y revisar el resultado del lector `interfaces` |
+| SSH no responde | Revisar `ssh.socket`, escucha TCP 22 y políticas de la VPN |
+| Aviso `fwupd-refresh` | Consultar su registro; actualizar metadatos y volver a ejecutar el servicio si corresponde |
+| VXG activo pero sin video | Revisar señales locales, cámaras y plataforma; un contenedor en marcha no basta |
+
+## Recuperar estilos del Gateway
+
+En el caso diagnosticado, `/vol/static/css/styles.css` estaba vacío y `/code/server/static/css/styles.css` conservaba una copia válida. Comprueba ambas condiciones antes de copiar:
+
+```bash
+sudo docker exec camera_agent_gateway-app-1 sh -c 'ls -l /vol/static/css/styles.css /code/server/static/css/styles.css'
+```
+
+Tras confirmar el archivo vacío y la copia válida:
+
+```bash
+sudo docker exec camera_agent_gateway-app-1 sh -c 'cp -p /vol/static/css/styles.css /vol/static/css/styles.css.bak && cp /code/server/static/css/styles.css /vol/static/css/styles.css'
+```
+
+Actualiza el navegador sin caché. Ajusta el nombre del contenedor si el proyecto Compose tiene otro nombre.
+
+## Fallo de actualización de metadatos de firmware
+
+El servicio `fwupd-refresh` actualiza el catálogo de firmware y los avisos de inicio de sesión; es independiente del servicio VXG. En el fallo diagnosticado se resolvió reintentando el catálogo y volviendo a ejecutar la unidad:
+
+```bash
+sudo journalctl -u fwupd-refresh.service -b -n 60 --no-pager
+sudo fwupdmgr refresh --force
+sudo systemctl restart fwupd-refresh.service
+sudo systemctl status fwupd-refresh.service --no-pager -l
+```
+
+`refresh` descarga metadatos; no instala firmware. Un servicio de ejecución puntual puede quedar `inactive (dead)` después de terminar correctamente. Comprueba las líneas `Finished` o `Deactivated successfully` y no solo el código numérico. Si la descarga muestra otro error, diagnostícalo antes de deshabilitar el servicio.
