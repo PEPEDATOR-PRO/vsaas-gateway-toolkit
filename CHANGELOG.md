@@ -2,6 +2,7 @@
 
 ## Próxima actualización
 
+- Salud de VPN IPsec en Salud Vsaas y Vista global, con estado IKE/CHILD SA, tiempo de sesión y contadores; consulta de solo lectura bajo demanda.
 - Asistente VPN con leftid, subred CIDR y clave compartida local; IP de administración calculada automáticamente y parámetros centrales preconfigurados.
 - El perfil generado se reutiliza para SSH, Cockpit y paneles y no guarda la clave compartida.
 

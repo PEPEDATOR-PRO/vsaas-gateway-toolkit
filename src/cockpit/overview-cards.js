@@ -13,6 +13,7 @@
     const head=make("div",undefined,"vsaas-card-heading");head.append(make("h2","Salud Vsaas"));const badge=make("span","Sin comprobar","vsaas-badge");badge.id="vsaas-health-badge";head.append(badge);health.append(head);
     const data=make("div",undefined,"vsaas-health-data");
     valueRow(data,"Aplicación","vsaas-app");valueRow(data,"Interfaz web","vsaas-web");valueRow(data,"Cámaras configuradas / habilitadas","vsaas-cameras");
+    valueRow(data,"VPN de administración","vsaas-vpn");
     health.append(data);const hint=make("p","VXG Cloud y video sin confirmar.","vsaas-note");health.append(hint);
     const actions=make("div",undefined,"vsaas-actions");actions.append(button("Actualizar resumen","vsaas-health-refresh",refreshHealth),detailButton("Ver detalle","/gateway_scanner/health"));health.append(actions);
     const status=make("p","Consulta bajo demanda · sin comprobar","vsaas-card-status");status.id="vsaas-health-status";status.setAttribute("role","status");health.append(status);
@@ -36,6 +37,7 @@
       const app=data.containers.find(c=>c.service==="app");by("vsaas-app").textContent=app?.state==="running"?(app.health==="unhealthy"?"Healthcheck con fallos":"En ejecución"):(app?.state||"No encontrada");
       by("vsaas-web").textContent=data.web?.valid?`Responde · ${data.web.latency_ms} ms`:"Sin respuesta confirmada";
       const db=data.internal?.database;by("vsaas-cameras").textContent=db?`${db.camera_total} / ${db.camera_enabled}`:"Sin confirmar";
+      by("vsaas-vpn").textContent={ok:"Conectada",warning:"Túnel parcial",critical:"Desconectada",unknown:"Sin confirmar"}[data.vpn?.status]||"Sin confirmar";
       by("vsaas-health-status").textContent="Consulta: "+new Date(data.checked_at).toLocaleTimeString("es-MX")+" · abre el detalle para revisar las señales.";
     }catch(err){by("vsaas-health-status").textContent=err.problem==="access-denied"?"Activa el acceso administrativo y vuelve a actualizar.":"No se completó la consulta. "+(err.message||String(err));by("vsaas-health-badge").textContent="Desactualizado";by("vsaas-health-badge").className="vsaas-badge unknown";}
     finally{state.healthBusy=false;by("vsaas-health-refresh").disabled=false;}

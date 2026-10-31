@@ -1,6 +1,6 @@
 const fs=require('node:fs'),path=require('node:path'),http=require('node:http'),assert=require('node:assert/strict');
 const{chromium}=require('playwright');
-const fixture={checked_at:'2026-10-30T18:00:00Z',local_status:'warning',cloud:'not-confirmed',containers:[
+const fixture={vpn:{status:'ok',service:'active',detail:'Túnel instalado',ike_established:true,child_installed:true,uptime_seconds:120,rx_bytes:0,tx_bytes:2048,rx_packets:0,tx_packets:2},checked_at:'2026-10-30T18:00:00Z',local_status:'warning',cloud:'not-confirmed',containers:[
  {id:'app1',service:'app',name:'camera_agent_gateway-app-1',image:'uplink-gateway:1.0.16-arm64',state:'running',health:'healthy',restarts:0,stats:{CPUPerc:'0.28%',MemUsage:'83 MiB / 7.7 GiB'}},
  {id:'nginx1',service:'nginx',name:'camera_agent_gateway-nginx-1',image:'uplink-gateway-nginx:1.0.16-arm64',state:'running',health:'not-configured',restarts:0,stats:{CPUPerc:'0.01%',MemUsage:'4 MiB / 7.7 GiB'}}],
  web:{valid:true,code:200,latency_ms:8},internal:{proxy_processes:1,proxy_tcp443:1,database:{camera_total:0,camera_enabled:0},logs:{files_sampled:2,events:{auth:0,error:0,disconnect:2,established:1}},notes:[]},
@@ -20,6 +20,7 @@ const server=http.createServer((req,res)=>{
   assert.equal(await page.evaluate(()=>checks),0);assert.equal(await page.locator('#auto').isChecked(),false);
   await page.click('#refresh');await page.waitForFunction(()=>!document.querySelector('#export').disabled);
   assert.equal(await page.evaluate(()=>lastOptions.superuser),'require');assert.equal(await page.locator('#proxy').textContent(),'1');
+  assert.equal(await page.locator('#vpn').textContent(),'Conectada');assert.match(await page.locator('#vpn-info').innerText(),/2 min/);
   assert.match(await page.locator('#cloud').textContent(),/sin confirmar/);assert.equal(await page.locator('#containers tr').count(),2);
   await page.screenshot({path:path.join(__dirname,'revision','health-desktop.png'),fullPage:true});
   await page.evaluate(()=>{window.data.containers[0].restarts=1;});await page.click('#refresh');await page.waitForFunction(()=>document.querySelector('.changed'));

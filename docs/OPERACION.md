@@ -84,3 +84,11 @@ sudo systemctl status fwupd-refresh.service --no-pager -l
 ```
 
 `refresh` descarga metadatos; no instala firmware. Un servicio de ejecución puntual puede quedar `inactive (dead)` después de terminar correctamente. Comprueba las líneas `Finished` o `Deactivated successfully` y no solo el código numérico. Si la descarga muestra otro error, diagnostícalo antes de deshabilitar el servicio.
+
+## Salud de la VPN
+
+En **Salud Vsaas**, pulsa **Comprobar ahora**. La sección VPN muestra servicio strongSwan, IKE establecido, túnel `administracion` instalado, tiempo de sesión IKE y contadores IPsec recibidos/enviados. Vista global incluye el estado al actualizar el resumen. Se consulta `swanctl --list-sas --ike gateway --raw` con tiempo límite y solo se exportan campos resumidos; no se leen archivos de claves.
+
+Conectada requiere IKE establecido y un CHILD SA de administración instalado. Un servicio activo por sí solo no confirma el túnel. Cero bytes recibidos no implica un fallo; los contadores no son un histórico y pueden cambiar al renovar asociaciones. Estas señales tampoco prueban acceso desde FortiClient ni transmisión de cámaras.
+
+La consulta es bajo demanda; la opción de 30 segundos se detiene al ocultar Salud Vsaas. No se instala un recolector permanente nuevo. Sin permisos, configuración o una respuesta válida, aparece sin confirmar.

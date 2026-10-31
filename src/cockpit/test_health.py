@@ -62,7 +62,7 @@ class HealthTests(unittest.TestCase):
             if args[1]=='stats':return '\n'.join(json.dumps({'Name':c['Name'].lstrip('/'),'CPUPerc':'0.2%','MemUsage':'32MiB / 7GiB'}) for c in containers)
             raise AssertionError(args)
         host={'ram_used_percent':11,'disk_used_percent':20,'ram_total':8000000000,'ram_available':7000000000,'disk_total':100000000000,'disk_free':80000000000,'uptime_seconds':5000}
-        with patch.object(health.shutil,'which',return_value='/usr/bin/docker'),patch.object(health,'run',side_effect=mock_run),patch.object(health,'host_resources',return_value=host),patch.object(health,'http_probe',return_value={'valid':True,'code':200,'latency_ms':5,'bytes':2834}):
+        with patch.object(health,'vpn_health',return_value={'status':'ok','detail':'VPN comprobada'}),patch.object(health.shutil,'which',return_value='/usr/bin/docker'),patch.object(health,'run',side_effect=mock_run),patch.object(health,'host_resources',return_value=host),patch.object(health,'http_probe',return_value={'valid':True,'code':200,'latency_ms':5,'bytes':2834}):
             report=health.collect()
         self.assertEqual(report['cloud'],'not-confirmed')
         self.assertEqual(report['local_status'],'ok')

@@ -204,10 +204,74 @@ def persistent_path(filename, mounts):
     return False
 
 
+def raw_sections(text):
+    """Yield balanced VICI sections, without exporting raw diagnostic text."""
+    stack=[]
+    for match in re.finditer(r'([A-Za-z0-9_.-]+)\s*\{|\}',text):
+        if match.group(1):
+            stack.append((match.group(1),match.end()))
+        elif stack:
+            name,start=stack.pop()
+            yield name,text[start:match.start()]
+
+
+def vpn_sas(text):
+    result={'ike_established':False,'child_installed':False,'uptime_seconds':None,
+            'rx_bytes':0,'tx_bytes':0,'rx_packets':0,'tx_packets':0}
+    def number(body,key):
+        value=re.search(r'(?<![\w-])'+re.escape(key)+r'=(\d+)(?=\s|$)',body)
+        return int(value.group(1)) if value else None
+    for name,body in raw_sections(text):
+        if name!='gateway':continue
+        header=body.split('child-sas',1)[0]
+        if not re.search(r'\bstate=ESTABLISHED\b',header):continue
+        result['ike_established']=True
+        result['uptime_seconds']=number(header,'established')
+        for _,child in raw_sections(body):
+            if not re.search(r'\bname=administracion(?=\s|$)',child) or not re.search(r'\bstate=INSTALLED\b',child):continue
+            # Ignore enclosing child-sas section; count only the individual SA.
+            if '{' in child:continue
+            result['child_installed']=True
+            for output,key in [('rx_bytes','bytes-in'),('tx_bytes','bytes-out'),('rx_packets','packets-in'),('tx_packets','packets-out')]:
+                value=number(child,key)
+                if value is not None:result[output]+=value
+    return result
+
+
+def vpn_health():
+    result={'status':'unknown','service':'unknown','detail':'No se pudo consultar la VPN de administración.'}
+    if not Path('/etc/swanctl/conf.d/gateway.conf').exists():
+        result['detail']='No se encontró la configuración VPN del toolkit.'
+        return result
+    try:
+        service=run(['systemctl','show','strongswan.service','--property=ActiveState','--value'],3).strip()
+        result['service']=service if service in ('active','inactive','failed','activating','deactivating') else 'unknown'
+        if result['service'] in ('inactive','failed'):
+            result.update(status='critical',detail='El servicio strongSwan está detenido o falló.')
+            return result
+        swanctl=shutil.which('swanctl')
+        if not swanctl:return result
+        text=run([swanctl,'--list-sas','--ike','gateway','--raw'],4)
+        if text.count('{')!=text.count('}'):return result
+        if text.strip() and not re.search(r'list-sa (?:event|reply)\s*\{',text):return result
+        result.update(vpn_sas(text))
+        if result['ike_established'] and result['child_installed']:
+            result.update(status='ok',detail='IKE establecido y túnel de administración instalado. No confirma acceso desde FortiClient.')
+        elif result['ike_established']:
+            result.update(status='warning',detail='IKE establecido; falta un túnel de administración instalado.')
+        else:
+            result.update(status='critical',detail='No hay una sesión IKE establecida para gateway.')
+    except (subprocess.SubprocessError,OSError,ValueError):
+        pass
+    return result
+
+
 def collect():
     result = {'checked_at': dt.datetime.now(dt.timezone.utc).isoformat(), 'containers': [], 'checks': [],
               'internal': None, 'host': None, 'web': None, 'css': None,
               'cloud': 'not-confirmed', 'version': '1.0', 'notes': []}
+    result['vpn']=vpn_health()
+    result['checks'].append(check('vpn','VPN de administración',result['vpn']['status'],result['vpn']['detail']))
     docker = shutil.which('docker')
     if not docker:
         result['checks'].append(check('docker', 'Docker', 'critical', 'No se encontró Docker.'))

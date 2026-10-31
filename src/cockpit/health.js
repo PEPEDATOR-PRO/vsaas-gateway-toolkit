@@ -18,6 +18,18 @@ function render(data){
  get("web").textContent=data.web?.valid?"Responde":data.web?"Revisar":"Sin confirmar";
  get("web-detail").textContent=data.web?.code?`HTTP ${data.web.code} · ${data.web.latency_ms??"—"} ms`:"No hay respuesta confirmada";
  const inside=data.internal;
+ const vpn=data.vpn;
+ get("vpn").textContent=vpn?({ok:"Conectada",warning:"Parcial",critical:"Desconectada",unknown:"Sin confirmar"}[vpn.status]||"Sin confirmar"):"Sin consultar";
+ get("vpn-detail").textContent=vpn?.detail||"Consulta VPN no disponible";
+ const vpnInfo=get("vpn-info");vpnInfo.replaceChildren();
+ if(vpn){
+  pair(vpnInfo,"Servicio strongSwan",vpn.service||"Sin confirmar");
+  pair(vpnInfo,"Negociación IKE",vpn.ike_established===true?"Establecida":vpn.ike_established===false?"Sin establecer":"Sin confirmar");
+  pair(vpnInfo,"Túnel de administración",vpn.child_installed===true?"Instalado":vpn.child_installed===false?"Sin instalar":"Sin confirmar");
+  pair(vpnInfo,"Tiempo de sesión IKE",Number.isFinite(vpn.uptime_seconds)?Math.floor(vpn.uptime_seconds/60)+" min":"—");
+  pair(vpnInfo,"Recibido / enviado",Number.isFinite(vpn.rx_bytes)?size(vpn.rx_bytes)+" / "+size(vpn.tx_bytes):"—");
+  pair(vpnInfo,"Paquetes recibidos / enviados",Number.isFinite(vpn.rx_packets)?vpn.rx_packets+" / "+vpn.tx_packets:"—");
+ }
  get("proxy").textContent=inside?String(inside.proxy_processes):"—";
  get("proxy-detail").textContent=inside?`${inside.proxy_tcp443??"—"} sockets TCP 443 · nube sin confirmar`:"No se pudo consultar la aplicación";
  get("cameras").textContent=inside?.database?String(inside.database.camera_total):"—";

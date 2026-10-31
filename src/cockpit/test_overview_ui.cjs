@@ -3,7 +3,7 @@ const{chromium}=require('playwright');
 const mock=`window.trafficStarts=0;window.healthQueries=0;window.closedReaders=0;window.jumped=null;const listeners=[];
 window.cockpit={hidden:false,addEventListener:(event,fn)=>listeners.push(fn),jump:path=>window.jumped=path,setHidden(value){this.hidden=value;listeners.forEach(fn=>fn());},spawn(args,options){
  if(args.includes('interfaces'))return Promise.resolve(JSON.stringify({interfaces:[{name:'eth0',addresses:['192.168.1.10/24']}]}));
- if(args.includes('/usr/local/libexec/vxg-health.py')){window.healthQueries++;return Promise.resolve(JSON.stringify({local_status:'ok',checked_at:new Date().toISOString(),containers:[{service:'app',state:'running',health:'healthy'}],web:{valid:true,latency_ms:8},internal:{database:{camera_total:0,camera_enabled:0}}}));}
+ if(args.includes('/usr/local/libexec/vxg-health.py')){window.healthQueries++;return Promise.resolve(JSON.stringify({vpn:{status:'critical'},local_status:'ok',checked_at:new Date().toISOString(),containers:[{service:'app',state:'running',health:'healthy'}],web:{valid:true,latency_ms:8},internal:{database:{camera_total:0,camera_enabled:0}}}));}
  window.trafficStarts++;let reject,timer,i=0,rx=0,tx=0;const p=new Promise((resolve,r)=>reject=r);
  p.stream=fn=>{timer=setInterval(()=>{rx+=(8+Math.sin(i/4)*2)*1e6/8;tx+=(21+Math.sin(i/7)*6)*1e6/8;fn(JSON.stringify({timestamp:i++,rx_bytes:rx,tx_bytes:tx})+'\\n');},15);};
  p.close=()=>{clearInterval(timer);window.closedReaders++;reject({problem:'terminated'});};return p;
@@ -26,6 +26,7 @@ const server=http.createServer((req,res)=>{
   assert.equal(await page.evaluate(()=>trafficStarts),0);assert.equal(await page.evaluate(()=>healthQueries),0);
   await page.click('#vsaas-health-refresh');await page.waitForFunction(()=>!document.querySelector('#vsaas-health-refresh').disabled);
   assert.equal(await page.locator('#vsaas-app').textContent(),'En ejecución');
+  assert.equal(await page.locator('#vsaas-vpn').textContent(),'Desconectada');
   assert.equal(await page.locator('#vsaas-cameras').textContent(),'0 / 0');assert.match(await page.locator('#vsaas-overview-health').innerText(),/video sin confirmar/);
   await page.click('#vsaas-traffic-toggle');await page.waitForFunction(()=>document.querySelector('#vsaas-line-rx').getAttribute('points').split(' ').length>=50);
   assert.equal(await page.locator('#vsaas-traffic-badge').textContent(),'En vivo');
