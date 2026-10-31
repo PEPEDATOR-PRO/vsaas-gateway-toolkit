@@ -2,6 +2,7 @@
 """Reversible overlay for the installed Cockpit system package. Linux only."""
 import datetime
 import gzip
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -31,21 +32,24 @@ def read_index(source):
     raise RuntimeError('No se encontró index.html de Cockpit. No se cambió la vista global.')
 
 
-def inject_html(html):
+def inject_html(html,revision=None):
     if 'base1/cockpit.js' not in html or 'id="overview"' not in html:
         raise RuntimeError('Esta versión de la vista global no coincide con la adaptación. No se cambió la vista global.')
     if '</head>' not in html:
         raise RuntimeError('Cabecera de la vista global no reconocida.')
-    additions='\n<link rel="stylesheet" href="../gateway_scanner/overview-cards.css">\n<script defer src="../gateway_scanner/overview-cards.js"></script>\n'
+    suffix='?v='+revision if revision else ''
+    additions='\n<link rel="stylesheet" href="../gateway_scanner/overview-cards.css'+suffix+'">\n<script defer src="../gateway_scanner/overview-cards.js'+suffix+'"></script>\n'
     return html.replace('</head>',additions+'</head>',1)
 
 
 def install():
     source,manifest=source_package()
-    html=inject_html(read_index(source))
+    digest=hashlib.sha256()
     for resource in ['overview-cards.js','overview-cards.css']:
         if not (RESOURCES/resource).is_file():
             raise RuntimeError('Falta el recurso '+resource+'. No se cambió la vista global.')
+        digest.update((RESOURCES/resource).read_bytes())
+    html=inject_html(read_index(source),digest.hexdigest()[:16])
     if OVERLAY.exists() and not (OVERLAY/MARKER).is_file():
         raise RuntimeError('Ya existe una adaptación ajena en '+str(OVERLAY)+'. No se modificó.')
     saved=None

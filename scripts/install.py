@@ -12,6 +12,7 @@ except ImportError:
     from profile import load_profile
 
 ROOT=Path(__file__).resolve().parents[1]
+CONFIG_DIR=Path('/etc/vsaas-gateway')
 MODULES=['vxg','vpn','ssh','cockpit','paneles','resumen','observacion','todo']
 
 
@@ -59,7 +60,7 @@ def main():
     if getattr(os,'geteuid',lambda:-1)()!=0:raise SystemExit('Ejecuta con sudo en Ubuntu.')
     if not sys.platform.startswith('linux'):raise SystemExit('La instalación debe ejecutarse en Ubuntu Linux.')
     subprocess.run([sys.executable,str(ROOT/'tools/build.py')],check=True)
-    config_dir=Path('/etc/vsaas-gateway');config_dir.mkdir(mode=0o755,parents=True,exist_ok=True)
+    config_dir=CONFIG_DIR;config_dir.mkdir(mode=0o755,parents=True,exist_ok=True)
     (config_dir/'config.json').write_text(json.dumps(profile,indent=2)+'\n')
     env={**os.environ,'VPN_ID':profile['vpn_id'],'VPN_RED_LOCAL':profile['vpn_local_subnet'],
          'VPN_IP_ADMIN':profile['vpn_admin_ip'],'VPN_SERVIDOR':profile['vpn_server'],
@@ -70,7 +71,7 @@ def main():
         if module=='vpn':command=['bash',str(ROOT/'scripts/install-vpn.sh')]
         elif module in ['ssh','cockpit']:command=['bash',str(ROOT/'scripts/install-access.sh'),module]
         elif module=='paneles':command=['bash',str(ROOT/'dist/instalar-escaner-cockpit.sh')]
-        elif module=='resumen':command=['/usr/bin/python3','/usr/local/libexec/install-overview-overlay.py']
+        elif module=='resumen':command=['bash',str(ROOT/'dist/instalar-resumen-general.sh')]
         else:command=['bash',str(ROOT/'dist/instalar-observacion-vsaas-24h.sh')]
         subprocess.run(command,env=env,check=True)
     print('Instalación aplicada. Completa las comprobaciones de docs/INSTALACION.md.')

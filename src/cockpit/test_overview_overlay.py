@@ -25,6 +25,13 @@ class OverlayTests(unittest.TestCase):
     def test_unknown_native_layout_is_not_modified(self):
         with self.assertRaises(RuntimeError):overlay.inject_html('<html><head></head><body>Changed page</body></html>')
 
+    def test_resource_revision_changes_both_asset_urls(self):
+        old=overlay.inject_html(HTML,'a123')
+        new=overlay.inject_html(HTML,'b456')
+        self.assertIn('overview-cards.js?v=b456',new)
+        self.assertIn('overview-cards.css?v=b456',new)
+        self.assertNotEqual(old,new)
+
     def test_compressed_native_index_is_supported(self):
         with tempfile.TemporaryDirectory() as folder:
             source=Path(folder);(source/'index.html.gz').write_bytes(gzip.compress(HTML.encode()))

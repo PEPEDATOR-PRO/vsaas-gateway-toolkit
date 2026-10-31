@@ -2,6 +2,7 @@
 
 ## Próxima actualización
 
+- Corrección de `resumen`: actualiza también los archivos instalados y utiliza versiones de recursos para evitar conservar la gráfica anterior en caché.
 - Gráfica de Vista global con fondo contrastado, cuadrícula, áreas de recepción/envío, escala visible y referencias de tiempo.
 - Prueba manual de credenciales ONVIF/HTTP y preparación de acceso web por túnel SSH desde el escáner, sin guardar credenciales ni abrir un proxy permanente.
 - Salud de VPN IPsec en Salud Vsaas y Vista global, con estado IKE/CHILD SA, tiempo de sesión y contadores; consulta de solo lectura bajo demanda.

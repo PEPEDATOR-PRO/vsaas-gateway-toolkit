@@ -53,7 +53,7 @@ sudo python3 scripts/install.py todo --config config/equipo.json
 
 La instalación copia el perfil sin secretos a `/etc/vsaas-gateway/config.json`. La inspección de salud utiliza `compose_project` desde ese archivo. No cambia usuarios ni contraseñas existentes.
 
-Para instalar por partes, sustituye `todo` por `vpn`, `ssh`, `cockpit` o `paneles`. `resumen` requiere primero `paneles`; `observacion` requiere Docker y se ejecuta aparte.
+Para instalar por partes, sustituye `todo` por `vpn`, `ssh`, `cockpit` o `paneles`. `resumen` actualiza los archivos de los paneles y aplica las tarjetas de Vista global; `observacion` requiere Docker y se ejecuta aparte.
 
 ## Comprobaciones de aceptación
 
