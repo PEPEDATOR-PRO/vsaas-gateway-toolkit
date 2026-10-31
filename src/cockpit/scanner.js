@@ -62,6 +62,10 @@ function render() {
     button.textContent = state.checking.has(device.ip) ? "Comprobando…" : "Comprobar servicios";
     button.disabled = state.busy || state.checking.size > 0;
     button.addEventListener("click", () => checkPorts(device)); services.append(button);
+    for(const [mode,label] of [["auth","Probar credenciales"],["tunnel","Acceder a su web"]]){
+      const action=document.createElement("button");action.className="secondary";action.textContent=label;action.disabled=state.busy||state.checking.size>0;
+      action.addEventListener("click",()=>openCamera(device,mode));services.append(action);
+    }
     $("rows").append(tr);
   }
 }
@@ -104,4 +108,51 @@ $("scan").addEventListener("click", scan);
 $("reload").addEventListener("click", loadInterfaces);
 $("filter").addEventListener("input", render);
 $("export").addEventListener("click", exportCsv);
+let cameraDevice=null,cameraAction=null,cameraRequest=null,cameraTimer=null,cameraGeneration=0;
+function stopCamera(){
+  cameraGeneration++;clearTimeout(cameraTimer);cameraTimer=null;
+  const request=cameraRequest;cameraRequest=null;if(request)request.close("terminated");
+  $("camera-password").value="";$("camera-user").value="";$("camera-submit").disabled=false;
+}
+function openCamera(device,mode){
+  stopCamera();cameraDevice={ip:device.ip,iface:state.iface};cameraAction=mode;
+  $("camera-title").textContent=mode==="auth"?"Probar credenciales":"Acceder a la web de la cámara";
+  $("camera-target").textContent=device.ip+" · "+state.iface;
+  $("auth-fields").hidden=mode!=="auth";$("tunnel-fields").hidden=mode!=="tunnel";
+  $("camera-user").required=mode==="auth";$("camera-password").required=mode==="auth";
+  for(const id of ["camera-user","camera-password","camera-mode"])$(id).disabled=mode!=="auth";
+  for(const id of ["ssh-user","local-port"])$(id).disabled=mode!=="tunnel";
+  $("camera-scheme").value=device.ports?.includes(443)&&!device.ports.includes(80)?"https":"http";
+  $("camera-port").value=$("camera-scheme").value==="https"?443:device.ports?.includes(8080)&&!device.ports.includes(80)?8080:80;
+  $("camera-result").textContent="";$("tunnel-result").hidden=true;$("tunnel-command").value="";$("tunnel-url").removeAttribute("href");
+  $("camera-submit").textContent=mode==="auth"?"Probar credenciales":"Preparar acceso SSH";
+  $("camera-tools").showModal();
+}
+async function submitCamera(event){
+  event.preventDefault();if(cameraRequest||!cameraDevice)return;
+  const generation=++cameraGeneration;
+  const options={scheme:$("camera-scheme").value,port:Number($("camera-port").value)};
+  if(cameraAction==="auth")Object.assign(options,{mode:$("camera-mode").value,username:$("camera-user").value,password:$("camera-password").value});
+  else Object.assign(options,{ssh_user:$("ssh-user").value,local_port:Number($("local-port").value)});
+  $("camera-submit").disabled=true;$("camera-result").textContent="Consultando desde el Gateway…";$("tunnel-result").hidden=true;
+  try{
+    const proc=cockpit.spawn(["/usr/bin/python3","/usr/local/libexec/gateway-scanner.py",cameraAction==="auth"?"camera-auth":"web-tunnel",cameraDevice.iface,cameraDevice.ip],{superuser:"require",err:"message",environ:["LC_ALL=C"]});
+    cameraRequest=proc;proc.input(JSON.stringify(options));delete options.password;delete options.username;$("camera-password").value="";
+    cameraTimer=setTimeout(()=>{if(cameraRequest===proc){stopCamera();$("camera-result").textContent="Se agotó el tiempo de la prueba. No se confirmó la autenticación.";}},25000);
+    const data=JSON.parse(await proc);if(generation!==cameraGeneration)return;
+    $("camera-result").textContent=(data.status?({accepted:"Aceptadas. ",rejected:"Rechazadas. ",unknown:"Sin confirmar. "}[data.status]||""):"")+(data.detail||"");
+    if(cameraAction==="tunnel"){
+      $("tunnel-result").hidden=false;$("tunnel-command").value=data.command;$("tunnel-url").href=data.url;$("tunnel-url").textContent="Abrir "+data.url;$("tunnel-detail").textContent="Si SSH no está instalado, ejecuta en el Gateway: sudo python3 scripts/install.py ssh. Mantén el túnel abierto mientras usas la cámara. HTTPS puede mostrar un aviso por el certificado de la cámara.";
+    }
+  }catch(err){if(generation===cameraGeneration)$("camera-result").textContent=errorMessage(err);}
+  finally{delete options.password;delete options.username;if(generation===cameraGeneration){$("camera-password").value="";clearTimeout(cameraTimer);cameraRequest=null;$("camera-submit").disabled=false;}}
+}
+$("camera-form").addEventListener("submit",submitCamera);
+$("camera-close").addEventListener("click",()=>$("camera-tools").close());
+$("camera-tools").addEventListener("close",stopCamera);
+$("camera-scheme").addEventListener("change",()=>{$("camera-port").value=$("camera-scheme").value==="https"?443:80;});
+function hideCamera(){stopCamera();if($("camera-tools").open)$("camera-tools").close();}
+document.addEventListener("visibilitychange",()=>{if(document.hidden)hideCamera();});
+cockpit.addEventListener?.("visibilitychange",()=>{if(cockpit.hidden)hideCamera();});
+window.addEventListener("pagehide",hideCamera);
 loadInterfaces();

@@ -10,6 +10,12 @@ import subprocess
 import sys
 import time
 import xml.etree.ElementTree as ET
+import base64
+import datetime
+import hashlib
+import urllib.request
+import urllib.error
+from xml.sax.saxutils import escape
 
 
 def execute(args, timeout=10):
@@ -125,6 +131,104 @@ def stream_traffic(name):
         time.sleep(1)
 
 
+class NoCameraRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self,*args,**kwargs):return None
+
+
+class CameraDigest(urllib.request.HTTPDigestAuthHandler):
+    def retry_http_digest_auth(self,req,auth):
+        if getattr(self,'attempts',0)>=1:return None
+        self.attempts=getattr(self,'attempts',0)+1
+        return super().retry_http_digest_auth(req,auth)
+
+
+def camera_target(name,address):
+    net=get_interface(name)
+    host=ipaddress.IPv4Address(address)
+    if not any(host in ipaddress.IPv4Interface(a).network and host not in (ipaddress.IPv4Interface(a).network.network_address,ipaddress.IPv4Interface(a).network.broadcast_address,ipaddress.IPv4Interface(a).ip) for a in net['addresses']):
+        raise ValueError('Selecciona un equipo de la red local, distinto del Gateway.')
+    return str(host)
+
+
+def camera_options(data):
+    scheme=data.get('scheme','http');port=data.get('port',80)
+    if scheme not in ('http','https') or type(port) is not int or not 1<=port<=65535:
+        raise ValueError('Protocolo o puerto no válido.')
+    return scheme,port
+
+
+def onvif_request(username=None,password=None):
+    security=''
+    if username is not None:
+        nonce=os.urandom(20)
+        created=datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+        digest=base64.b64encode(hashlib.sha1(nonce+created.encode()+password.encode()).digest()).decode()
+        security='<s:Header><wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd"><wsse:UsernameToken><wsse:Username>'+escape(username)+'</wsse:Username><wsse:Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordDigest">'+digest+'</wsse:Password><wsse:Nonce EncodingType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-soap-message-security-1.0#Base64Binary">'+base64.b64encode(nonce).decode()+'</wsse:Nonce><wsu:Created>'+created+'</wsu:Created></wsse:UsernameToken></wsse:Security></s:Header>'
+    return ('<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">'+security+'<s:Body><GetDeviceInformation xmlns="http://www.onvif.org/ver10/device/wsdl"/></s:Body></s:Envelope>').encode()
+
+
+def camera_http(url,body=None,credentials=None):
+    handlers=[urllib.request.ProxyHandler({}),NoCameraRedirect()]
+    if credentials:
+        manager=urllib.request.HTTPPasswordMgrWithDefaultRealm()
+        manager.add_password(None,url,*credentials)
+        handlers.append(CameraDigest(manager))
+        # Basic is sent only after the camera explicitly challenges it.
+        handlers.append(urllib.request.HTTPBasicAuthHandler(manager))
+    request=urllib.request.Request(url,data=body)
+    if body is not None:request.add_header('Content-Type','application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver10/device/wsdl/GetDeviceInformation"')
+    try:
+        with urllib.request.build_opener(*handlers).open(request,timeout=5) as response:
+            return response.status,response.read(65536)
+    except urllib.error.HTTPError as error:
+        try:return error.code,error.read(65536)
+        finally:error.close()
+
+
+def soap_result(body):
+    try:
+        root=ET.fromstring(body)
+        tags={node.tag for node in root.iter()}
+        if '{http://www.onvif.org/ver10/device/wsdl}GetDeviceInformationResponse' in tags and not any(tag.endswith('}Fault') for tag in tags):return 'success'
+        if any(tag.endswith('}Fault') for tag in tags) and any((node.text or '').split(':')[-1].strip() in ('NotAuthorized','FailedAuthentication') for node in root.iter()):return 'denied'
+    except ET.ParseError:pass
+    return 'unknown'
+
+
+def camera_auth(name,address,data):
+    host=camera_target(name,address);scheme,port=camera_options(data)
+    username,password=data.get('username'),data.get('password')
+    mode=data.get('mode','onvif')
+    if mode not in ('onvif','web') or not all(isinstance(v,str) and 0<len(v)<=1024 and not any(c in v for c in '\r\n\x00') for v in (username,password)):
+        raise ValueError('Introduce usuario y contraseña válidos. No se guardarán.')
+    url=f'{scheme}://{host}:{port}'+('/onvif/device_service' if mode=='onvif' else '/')
+    def result(status,detail):return {'status':status,'detail':detail}
+    try:
+        code,body=camera_http(url,onvif_request() if mode=='onvif' else None)
+        rejected=code==401 or (mode=='onvif' and soap_result(body)=='denied')
+        if not rejected:
+            return result('unknown','El servicio no exigió una autenticación compatible. Una página de acceso o una respuesta pública no valida la contraseña. Prueba el acceso web por SSH.')
+        code,body=camera_http(url,onvif_request(username,password) if mode=='onvif' else None,(username,password))
+        if code==401 or (mode=='onvif' and soap_result(body)=='denied'):
+            return result('rejected','Autenticación rechazada. Revisa credenciales, permisos ONVIF y hora de la cámara; evita repetir pruebas para no bloquear la cuenta.')
+        if code==200 and (mode=='web' or soap_result(body)=='success'):
+            return result('accepted','Credenciales aceptadas por '+('ONVIF' if mode=='onvif' else 'autenticación HTTP')+'. No confirma RTSP ni transmisión de video.')
+        return result('unknown','Respuesta sin confirmación de autenticación. Revisa protocolo, puerto y permisos; los accesos web por formulario no se validan automáticamente.')
+    except (OSError,urllib.error.URLError,ValueError):
+        return result('unknown','No se completó la prueba. Revisa conectividad, puerto y certificado HTTPS. No se desactiva la verificación de certificados.')
+
+
+def web_tunnel(name,address,data):
+    host=camera_target(name,address);scheme,port=camera_options(data)
+    user=data.get('ssh_user','ubuntu');local=data.get('local_port',18080)
+    if not isinstance(user,str) or not re.fullmatch(r'[a-z_][a-z0-9_-]{0,31}',user) or type(local) is not int or not 1024<=local<=65535:
+        raise ValueError('Usuario SSH o puerto local no válido.')
+    try:admin=str(ipaddress.IPv4Address(json.loads(Path('/etc/vsaas-gateway/config.json').read_text())['vpn_admin_ip']))
+    except (OSError,ValueError,KeyError,TypeError):raise ValueError('Falta la IP de administración en el perfil del Gateway.') from None
+    command=f'ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -L 127.0.0.1:{local}:{host}:{port} {user}@{admin}'
+    return {'command':command,'url':f'{scheme}://127.0.0.1:{local}','detail':'Ejecuta este comando en PowerShell o una terminal de tu computadora con la VPN conectada. Usa la contraseña de Ubuntu, no la de la cámara. Mantén esa terminal abierta y abre el enlace. Ctrl+C cierra el túnel. Requiere SSH instalado en el Gateway y reenvío TCP permitido. Algunas cámaras con redirecciones o direcciones absolutas pueden no funcionar a través de este túnel.'}
+
+
 def main(argv):
     if argv == ['interfaces']:
         return {'interfaces': interfaces()}
@@ -134,6 +238,10 @@ def main(argv):
         return scan(argv[1])
     if len(argv) == 3 and argv[0] == 'ports':
         return ports(argv[1], argv[2])
+    if len(argv)==3 and argv[0] in ('camera-auth','web-tunnel'):
+        data=json.loads(sys.stdin.read(8193))
+        if not isinstance(data,dict):raise ValueError('Opciones no válidas.')
+        return (camera_auth if argv[0]=='camera-auth' else web_tunnel)(argv[1],argv[2],data)
     raise ValueError('Acción no válida.')
 
 

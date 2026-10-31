@@ -27,6 +27,21 @@
     <p class="note">El escaneo se ejecuta solo al pulsar el botón. La búsqueda ARP detecta equipos del segmento local seleccionado; no recorre la VPN ni otras redes.</p>
     <p class="note">Comprobar servicios consulta TCP 80, 443, 554, 8000 y 8080. Los puertos abiertos son pistas y no confirman que el equipo sea una cámara. Activa el acceso administrativo de Cockpit si se solicita.</p>
     <details><summary>Ver salida del último escaneo</summary><pre id="raw">Todavía no hay un escaneo.</pre></details>
+    <dialog id="camera-tools" aria-labelledby="camera-title">
+      <form id="camera-form">
+        <h2 id="camera-title">Herramientas de cámara</h2><p id="camera-target"></p>
+        <div class="camera-fields"><div class="field"><label for="camera-scheme">Protocolo</label><select id="camera-scheme"><option value="http">HTTP</option><option value="https">HTTPS</option></select></div><div class="field"><label for="camera-port">Puerto de la cámara</label><input id="camera-port" type="number" min="1" max="65535" value="80" required></div></div>
+        <div id="auth-fields">
+          <div class="field"><label for="camera-mode">Tipo de prueba</label><select id="camera-mode"><option value="onvif">ONVIF · servicio de dispositivo</option><option value="web">HTTP Basic / Digest · acceso web</option></select></div>
+          <div class="camera-fields"><div class="field"><label for="camera-user">Usuario de cámara</label><input id="camera-user" autocomplete="off" maxlength="1024"></div><div class="field"><label for="camera-password">Contraseña de cámara</label><input id="camera-password" type="password" autocomplete="off" maxlength="1024"></div></div>
+          <p class="note">Una prueba manual con las credenciales que indiques. No se guardan ni se incluyen en CSV. Una página pública no confirma la contraseña. Algunas cámaras requieren un usuario ONVIF propio o la hora sincronizada. Evita repetir pruebas con datos incorrectos para no bloquear la cuenta. HTTP Basic puede enviar la clave sin cifrado dentro de la red local de la cámara.</p>
+        </div>
+        <div id="tunnel-fields" hidden><div class="camera-fields"><div class="field"><label for="ssh-user">Usuario SSH del Gateway</label><input id="ssh-user" value="ubuntu" pattern="[a-z_][a-z0-9_-]{0,31}"></div><div class="field"><label for="local-port">Puerto local de tu computadora</label><input id="local-port" type="number" min="1024" max="65535" value="18080"></div></div><p class="note">Preparar el acceso no abre puertos. El túnel se inicia cuando ejecutas el comando en tu computadora y termina con Ctrl+C.</p></div>
+        <p id="camera-result" role="status" aria-live="polite"></p>
+        <div id="tunnel-result" hidden><label for="tunnel-command">Comando para tu computadora</label><textarea id="tunnel-command" readonly rows="4" spellcheck="false"></textarea><a id="tunnel-url" target="_blank" rel="noopener noreferrer">Abrir web de la cámara</a><p id="tunnel-detail" class="note"></p></div>
+        <div class="camera-actions"><button id="camera-submit" type="submit">Probar credenciales</button><button id="camera-close" type="button" class="secondary">Cerrar</button></div>
+      </form>
+    </dialog>
   </main>
 </body>
 </html>

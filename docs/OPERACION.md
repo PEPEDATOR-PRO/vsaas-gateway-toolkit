@@ -92,3 +92,23 @@ En **Salud Vsaas**, pulsa **Comprobar ahora**. La sección VPN muestra servicio 
 Conectada requiere IKE establecido y un CHILD SA de administración instalado. Un servicio activo por sí solo no confirma el túnel. Cero bytes recibidos no implica un fallo; los contadores no son un histórico y pueden cambiar al renovar asociaciones. Estas señales tampoco prueban acceso desde FortiClient ni transmisión de cámaras.
 
 La consulta es bajo demanda; la opción de 30 segundos se detiene al ocultar Salud Vsaas. No se instala un recolector permanente nuevo. Sin permisos, configuración o una respuesta válida, aparece sin confirmar.
+
+## Credenciales y acceso web de cámaras
+
+En **Escáner de red**, busca equipos y utiliza las acciones de la fila correspondiente:
+
+- **Probar credenciales**: elige protocolo, puerto y ONVIF o HTTP Basic/Digest. Introduce una sola combinación y pulsa Probar. El Gateway consulta `/onvif/device_service` o `/` desde la red local. ONVIF usa GetDeviceInformation con UsernameToken digest y admite un desafío HTTP. Solo confirma credenciales si el servicio primero exige autenticación y después acepta la petición. Una página pública, un formulario web o una respuesta incompatible quedan sin confirmar. El usuario ONVIF puede ser diferente del administrador web; permisos y reloj de la cámara también pueden causar rechazo. Esta prueba no verifica RTSP ni video.
+- **Acceder a su web**: elige el puerto de la cámara, usuario Ubuntu del Gateway y un puerto libre en tu computadora. Pulsa Preparar acceso SSH. Copia el comando mostrado y ejecútalo en PowerShell o una terminal **de tu computadora**, con FortiClient conectado. Introduce la contraseña de Ubuntu cuando SSH la solicite; después abre el enlace local. Mantén la terminal abierta. Ctrl+C cierra el túnel. Para dos cámaras simultáneas utiliza puertos locales distintos.
+
+Si SSH no está instalado en el Gateway:
+
+```bash
+cd ~/vsaas-gateway-toolkit
+sudo python3 scripts/install.py ssh
+```
+
+FortiGate debe permitir TCP 22 desde tu VPN hasta el Gateway y el servidor SSH debe permitir reenvío TCP. La herramienta prepara un comando; no ejecuta SSH en tu computadora ni declara el túnel abierto. El puerto se enlaza exclusivamente a `127.0.0.1` en tu equipo. Si el puerto está ocupado, elige otro. Algunas webs de cámara usan redirecciones, URLs absolutas o puertos adicionales y pueden necesitar ajustes específicos; no se reescriben sus páginas. HTTPS conserva el certificado de la cámara, que puede no coincidir con localhost.
+
+Las pruebas se limitan a la red local seleccionada, excluyen el propio Gateway, no siguen redirecciones HTTP y no desactivan la validación TLS. Las credenciales se envían por la entrada estándar del proceso, nunca en argumentos ni archivos, y no se incluyen en resultados, CSV ni diagnóstico de salud. La contraseña se borra del formulario al enviar o cerrar. Cerrar el panel o salir cancela la prueba; no se crea un servicio permanente. Los archivos de claves de la VPN no se consultan. HTTP Basic sobre HTTP puede enviar credenciales sin cifrado en el tramo local hacia la cámara. No repitas intentos con datos incorrectos porque la cámara puede bloquear la cuenta.
+
+Referencias del protocolo: [ONVIF Security Configuration](https://onvif.org/specs/srv/security/ONVIF-Security-Service-Spec.pdf), [entrada de procesos en Cockpit](https://cockpit-project.org/guide/latest/cockpit-spawn.html) y [reenvío local OpenSSH](https://man.openbsd.org/ssh#L).
