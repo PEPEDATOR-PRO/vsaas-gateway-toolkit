@@ -30,6 +30,9 @@ const server=http.createServer((req,res)=>{
   assert.equal(await page.locator('#vsaas-cameras').textContent(),'0 / 0');assert.match(await page.locator('#vsaas-overview-health').innerText(),/video sin confirmar/);
   await page.click('#vsaas-traffic-toggle');await page.waitForFunction(()=>document.querySelector('#vsaas-line-rx').getAttribute('points').split(' ').length>=50);
   assert.equal(await page.locator('#vsaas-traffic-badge').textContent(),'En vivo');
+  assert.equal(await page.locator('.vsaas-chart-grid').count(),1);assert.match(await page.locator('#vsaas-chart-ceiling').textContent(),/Mb\/s/);assert.match(await page.locator('.vsaas-chart-times').innerText(),/60 s/);
+  assert.ok((await page.locator('#vsaas-area-rx').getAttribute('points')).length>10);
+  assert.notEqual(await page.locator('.vsaas-chart').evaluate(e=>getComputedStyle(e).backgroundColor),await page.locator('#vsaas-overview-traffic').evaluate(e=>getComputedStyle(e).backgroundColor));
   await page.screenshot({path:path.join(__dirname,'revision','overview-desktop.png'),fullPage:true});
   await page.click('#vsaas-traffic-toggle');const frozen=await page.locator('#vsaas-rx').textContent();await page.waitForTimeout(50);assert.equal(await page.locator('#vsaas-rx').textContent(),frozen);
   await page.evaluate(()=>document.querySelector('#vsaas-overview-health').remove());await page.waitForFunction(()=>document.querySelector('#vsaas-overview-health'));

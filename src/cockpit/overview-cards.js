@@ -21,8 +21,13 @@
     const traffic=make("section",undefined,"vsaas-summary-card");traffic.id="vsaas-overview-traffic";traffic.setAttribute("aria-label","Resumen Tráfico de red");
     const heading=make("div",undefined,"vsaas-card-heading");heading.append(make("h2","Tráfico de red"));const trafficBadge=make("span","Detenido","vsaas-badge");trafficBadge.id="vsaas-traffic-badge";heading.append(trafficBadge);traffic.append(heading);
     const rates=make("div",undefined,"vsaas-rates");for(const[key,label]of [["rx","↓ Recepción"],["tx","↑ Envío"]]){const box=make("div");box.append(make("span",label,"vsaas-direction "+key));const strong=make("strong","—");strong.id="vsaas-"+key;box.append(strong,make("small","Mb/s"));rates.append(box);}traffic.append(rates);
-    const ns="http://www.w3.org/2000/svg",svg=document.createElementNS(ns,"svg");svg.id="vsaas-sparkline";svg.setAttribute("viewBox","0 0 600 65");svg.setAttribute("role","img");svg.setAttribute("aria-label","Recepción y envío de los últimos 60 segundos");
-    for(const key of ["rx","tx"]){const line=document.createElementNS(ns,"polyline");line.id="vsaas-line-"+key;line.setAttribute("class",key);svg.append(line);}traffic.append(svg);
+    const chart=make("div",undefined,"vsaas-chart");
+    const scale=make("div",undefined,"vsaas-chart-scale");scale.append(make("span","Tráfico del puerto"));const ceiling=make("span","Escala automática · Mb/s");ceiling.id="vsaas-chart-ceiling";scale.append(ceiling);chart.append(scale);
+    const ns="http://www.w3.org/2000/svg",svg=document.createElementNS(ns,"svg");svg.id="vsaas-sparkline";svg.setAttribute("viewBox","0 0 600 120");svg.setAttribute("preserveAspectRatio","none");svg.setAttribute("role","img");svg.setAttribute("aria-label","Recepción y envío de los últimos 60 segundos; escala automática en megabits por segundo");
+    const grid=document.createElementNS(ns,"path");grid.setAttribute("class","vsaas-chart-grid");grid.setAttribute("d","M0 10H600 M0 35H600 M0 60H600 M0 85H600 M0 110H600 M0 10V110 M150 10V110 M300 10V110 M450 10V110 M600 10V110");svg.append(grid);
+    for(const key of ["rx","tx"]){const area=document.createElementNS(ns,"polygon");area.id="vsaas-area-"+key;area.setAttribute("class","vsaas-chart-area "+key);svg.append(area);}
+    for(const key of ["rx","tx"]){const line=document.createElementNS(ns,"polyline");line.id="vsaas-line-"+key;line.setAttribute("class",key);svg.append(line);}chart.append(svg);
+    const times=make("div",undefined,"vsaas-chart-times");for(const label of ["−60 s","−30 s","Ahora"])times.append(make("span",label));chart.append(times);traffic.append(chart);
     const network=make("div",undefined,"vsaas-network-controls");const select=document.createElement("select");select.id="vsaas-interface";select.setAttribute("aria-label","Puerto de red del resumen");select.disabled=true;network.append(select,button("Iniciar","vsaas-traffic-toggle",()=>state.process?stopTraffic():startTraffic()),detailButton("Ver gráfica","/gateway_scanner/traffic"));traffic.append(network);
     const trafficStatus=make("p","Monitor apagado · una muestra por segundo al activarlo","vsaas-card-status");trafficStatus.id="vsaas-traffic-status";trafficStatus.setAttribute("role","status");traffic.append(trafficStatus);
     return[health,traffic];
@@ -59,7 +64,13 @@
     by("vsaas-rx").textContent=number.format(rx);by("vsaas-tx").textContent=number.format(tx);
     state.points.push({time:sample.timestamp,rx,tx});state.points=state.points.filter(p=>sample.timestamp-p.time<=60).slice(-61);
     const max=Math.max(1,...state.points.flatMap(p=>[p.rx,p.tx]))*1.1;
-    for(const key of ["rx","tx"])by("vsaas-line-"+key).setAttribute("points",state.points.map(p=>`${598-(sample.timestamp-p.time)*596/60},${62-p[key]/max*58}`).join(" "));
+    by("vsaas-chart-ceiling").textContent="0 – "+number.format(max)+" Mb/s";
+    for(const key of ["rx","tx"]){
+      const points=state.points.map(p=>`${600-(sample.timestamp-p.time)*600/60},${110-p[key]/max*100}`);
+      by("vsaas-line-"+key).setAttribute("points",points.join(" "));
+      const first=600-(sample.timestamp-state.points[0].time)*600/60;
+      by("vsaas-area-"+key).setAttribute("points",`${first},110 ${points.join(" ")} 600,110`);
+    }
     by("vsaas-traffic-status").textContent=by("vsaas-interface").value+" · últimos 60 s · tráfico total del puerto";
   }
   function stopTraffic(message="Detenido · se conservan las últimas lecturas"){
@@ -68,7 +79,7 @@
   }
   function startTraffic(){
     if(state.process||!by("vsaas-interface").value||document.hidden||cockpit.hidden)return;
-    state.previous=null;state.points=[];state.buffer="";by("vsaas-rx").textContent="—";by("vsaas-tx").textContent="—";for(const key of ["rx","tx"])by("vsaas-line-"+key).setAttribute("points","");
+    state.previous=null;state.points=[];state.buffer="";by("vsaas-rx").textContent="—";by("vsaas-tx").textContent="—";by("vsaas-chart-ceiling").textContent="Esperando muestras · Mb/s";for(const key of ["rx","tx"]){by("vsaas-line-"+key).setAttribute("points","");by("vsaas-area-"+key).setAttribute("points","");}
     const id=++state.runId,proc=cockpit.spawn(["/usr/bin/python3","-u","/usr/local/libexec/gateway-scanner.py","traffic-stream",by("vsaas-interface").value],{err:"message"});state.process=proc;
     by("vsaas-traffic-toggle").textContent="Detener";by("vsaas-interface").disabled=true;by("vsaas-traffic-badge").textContent="En vivo";by("vsaas-traffic-badge").className="vsaas-badge ok";by("vsaas-traffic-status").textContent="Preparando primera lectura…";
     proc.stream(chunk=>{if(id!==state.runId)return;state.buffer+=chunk;if(state.buffer.length>65536){stopTraffic("Lectura inesperada; vuelve a iniciar.");return;}let pos;try{while((pos=state.buffer.indexOf("\n"))>=0){const line=state.buffer.slice(0,pos);state.buffer=state.buffer.slice(pos+1);if(line.trim())graph(JSON.parse(line));}}catch(err){stopTraffic("No se pudo interpretar el tráfico.");}});
