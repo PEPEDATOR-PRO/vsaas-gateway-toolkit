@@ -1,7 +1,9 @@
 # Cambios
 
-## Próxima actualización
+## 0.3.0 — 2026-11-03
 
+- Guía completa de implementación pública con todos los módulos, Gateway Vsaas, verificación y exportación de informes a Windows.
+- Parámetros VPN centrales en archivo local y host API Vsaas proporcionado por el operador; se eliminan los valores de cliente predeterminados del código actual.
 - Corrección de `resumen`: actualiza también los archivos instalados y utiliza versiones de recursos para evitar conservar la gráfica anterior en caché.
 - Gráfica de Vista global con fondo contrastado, cuadrícula, áreas de recepción/envío, escala visible y referencias de tiempo.
 - Prueba manual de credenciales ONVIF/HTTP y preparación de acceso web por túnel SSH desde el escáner, sin guardar credenciales ni abrir un proxy permanente.

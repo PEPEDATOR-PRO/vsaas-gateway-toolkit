@@ -23,29 +23,28 @@ sudo docker run --rm hello-world
 
 Si hay un error, resuélvelo antes de iniciar VXG. No mezcles otra instalación de Docker con una existente sin revisarla.
 
-## 2 Obtener el repositorio privado
+## 2 Obtener el repositorio público
 
-Si aún no tienes una copia:
+Para un equipo nuevo:
 
 ```bash
-sudo apt install -y gh
-gh auth login --hostname github.com --git-protocol https --web
-gh repo clone PEPEDATOR-PRO/vsaas-gateway-toolkit
+cd ~
+git clone https://github.com/PEPEDATOR-PRO/vsaas-gateway-toolkit.git
 cd ~/vsaas-gateway-toolkit
 ```
 
-Para actualizar una copia existente, autoriza GitHub si hace falta y ejecuta desde su carpeta:
+Para actualizar una copia existente:
 
 ```bash
-gh auth setup-git
+cd ~/vsaas-gateway-toolkit
 git pull --ff-only
 ```
 
-Cuando termine la descarga, puedes retirar la sesión local de GitHub con `gh auth logout --hostname github.com`. Para futuras actualizaciones privadas hará falta autorizar de nuevo o configurar un acceso específico del equipo.
+No se necesita iniciar sesión en GitHub. Para el flujo completo de todos los módulos, consulta [la guía paso a paso](GUIA-COMPLETA.md).
 
 ## 3 Proporcionar credenciales del registro de VXG
 
-El paquete original incluye un `.env` con `GITLAB_REGISTRY_USER` y `GITLAB_REGISTRY_TOKEN`. Esas credenciales son para el registro de imágenes de VXG, no para GitHub. El archivo original se conserva fuera del repositorio.
+El paquete del proveedor puede incluir un `.env` con `GITLAB_REGISTRY_USER`, `GITLAB_REGISTRY_TOKEN` y `VXG_API_HOST`. Esas credenciales son para el registro de imágenes de VXG, no para GitHub. El archivo original se conserva fuera del repositorio.
 
 La opción más simple es abrir el archivo original localmente y proporcionar usuario y token cuando los solicite el instalador. El token se introduce sin mostrarse en pantalla. No hace falta copiarlo al chat ni guardarlo en el perfil del equipo.
 
@@ -75,7 +74,7 @@ sudo python3 scripts/install.py vxg
 sudo python3 scripts/install.py vxg --vxg-env ~/vxg-registry.env
 ```
 
-El instalador detecta ARM64 o x64, usa VXG 1.0.16, solicita una contraseña nueva de administrador de al menos 12 caracteres y genera las claves Django. En esta primera versión del módulo, la contraseña no admite comillas simples ni barras invertidas.
+El instalador solicita el host API de tu plataforma si no viene en el archivo privado. No hay un dominio de cliente preconfigurado. Después detecta ARM64 o x64, usa VXG 1.0.16, solicita una contraseña nueva de administrador de al menos 12 caracteres y genera las claves Django. En esta primera versión del módulo, la contraseña no admite comillas simples ni barras invertidas.
 
 La configuración de Docker utilizada para el login es temporal. El token del registro no se escribe en el `.env` de la aplicación ni se pasa al contenedor. Si proporcionas un archivo privado propio, ese archivo permanece bajo tu control y no se elimina automáticamente.
 
@@ -95,4 +94,4 @@ Después sigue [la instalación de administración](INSTALACION.md) para configu
 
 - Si falla la autenticación antes de descargar, corrige usuario y token. No se habrá creado el directorio de despliegue.
 - Si falla una descarga o el arranque después de crear el directorio, se conservan los archivos para diagnóstico. No borres volúmenes ni repitas una instalación de cero sobre un servicio con datos.
-- El módulo y sus límites se probaron con simulaciones. El arranque de este nuevo flujo de instalación debe validarse en el equipo nuevo antes de considerarlo una receta de campo comprobada.
+- El módulo tiene pruebas simuladas y su instalación se comprobó en un Gateway de referencia. Valida el arranque, registro y video en cada equipo y plataforma.

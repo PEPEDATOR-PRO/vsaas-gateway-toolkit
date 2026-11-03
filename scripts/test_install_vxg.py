@@ -44,10 +44,16 @@ class VxgInstallTests(unittest.TestCase):
             with self.assertRaises(ValueError):vxg.install()
             prompt.assert_not_called();self.assertEqual(command.call_count,1)
 
+    def test_platform_host_is_requested_and_invalid_url_stops_before_secrets(self):
+        with tempfile.TemporaryDirectory() as folder,patch.object(vxg,'TARGET',Path(folder)/'deployment'),patch.object(vxg.shutil,'which',return_value='/usr/bin/docker'),patch.object(vxg,'command'),patch.object(vxg.subprocess,'check_output',return_value=''),patch('builtins.input',return_value='https://api.example.invalid/path') as host_prompt,patch.object(vxg.getpass,'getpass') as secret_prompt:
+            with self.assertRaises(ValueError):vxg.install()
+            self.assertEqual(host_prompt.call_count,1)
+            secret_prompt.assert_not_called()
+
     def test_registry_token_is_stdin_only_and_temporary_auth_is_removed(self):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);target=root/'deployment';credentials=root/'private.env'
-            credentials.write_text('GITLAB_REGISTRY_USER=example-user\nGITLAB_REGISTRY_TOKEN=dummy-registry-token\n')
+            credentials.write_text('GITLAB_REGISTRY_USER=example-user\nGITLAB_REGISTRY_TOKEN=dummy-registry-token\nVXG_API_HOST=api.example.invalid\n')
             calls=[]
             def run(args,**kwargs):
                 calls.append((args,kwargs))

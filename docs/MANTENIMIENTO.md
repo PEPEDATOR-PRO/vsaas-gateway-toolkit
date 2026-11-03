@@ -31,8 +31,12 @@ sudo mv /usr/local/share/cockpit/vsaas_system "/var/backups/vsaas-overview-retir
 
 Las versiones anteriores de la adaptación y los paneles se guardan en `/var/backups/` cuando el instalador los sustituye. Retirar las tarjetas no elimina los paneles separados.
 
-## GitHub privado
+## Repositorio público
 
-El repositorio debe crearse con visibilidad privada. Verifica la cuenta propietaria y que el remoto coincida con la URL del repositorio antes de subir la primera versión. La automatización solo prueba y genera paquetes; no instala en Gateways.
+La descarga HTTPS y `git pull --ff-only` no requieren autenticación en un repositorio público. Los accesos del registro VXG y del FortiGate siguen siendo independientes y privados. La automatización solo prueba y genera paquetes; no instala en Gateways.
 
 Los perfiles reales, PSK, claves SSH, capturas de clientes e informes operativos deben mantenerse fuera del historial. Un repositorio privado no sustituye ese control. Se conservan los scripts recibidos de VXG como referencia de versión; las imágenes y el `.env` original con credenciales no se publican.
+
+Los parámetros centrales se preparan en `config/vpn-central.json` (ignorado). En la versión pública actual no se fija un servidor VPN ni una plataforma de cliente. El asistente mantiene las tres entradas por equipo tras esa preparación. El módulo VXG solicita el host API si no fue proporcionado localmente. Equipos ya instalados no se reconfiguran por hacer `git pull`.
+
+Las primeras revisiones del proyecto contienen direcciones de infraestructura que se retiraron de la versión actual. Quitarlas de un archivo no las elimina del historial publicado. Esta actualización no reescribe el historial. No publiques informes de clientes para documentar las pruebas; utiliza resultados agregados sin identificadores.

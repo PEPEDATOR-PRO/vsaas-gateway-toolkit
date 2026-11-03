@@ -77,9 +77,12 @@ def install(credentials=None,project='camera_agent_gateway'):
     private=read_env(credentials) if credentials else {}
     for key in PUBLIC:
         if private.get(key):settings[key]=private[key]
+    if not settings.get('VXG_API_HOST'):
+        settings['VXG_API_HOST']=input('Host API de tu plataforma Vsaas (sin https:// ni rutas): ').strip()
     for key in PUBLIC:
         if not settings.get(key):raise ValueError('Falta configuración del proveedor: '+key)
     if not re.fullmatch(r'[A-Za-z0-9.-]+(?::[0-9]{1,5})?',settings['GITLAB_REGISTRY_HOST']):raise ValueError('Host del registro no válido.')
+    if not re.fullmatch(r'[A-Za-z0-9.-]+(?::[0-9]{1,5})?',settings['VXG_API_HOST']):raise ValueError('Host API no válido; introduce solo el dominio o la IP entregados por el proveedor.')
     username=private.get('GITLAB_REGISTRY_USER') or input('Usuario del registro VXG: ').strip()
     token=private.get('GITLAB_REGISTRY_TOKEN') or getpass.getpass('Token del registro VXG: ')
     if not username or not token:raise ValueError('Faltan credenciales de descarga del proveedor.')

@@ -11,6 +11,7 @@ playwright-report/
 !.env.example
 config/*.json
 !config/equipo.example.json
+!config/vpn-central.example.json
 devices/
 private/
 secrets/

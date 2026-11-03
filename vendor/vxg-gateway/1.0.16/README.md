@@ -2,7 +2,7 @@
 
 Importado de `docker_gateway_package_1.0.16_261013.zip`, proporcionado para este proyecto. `package.json` registra el hash SHA256 del archivo original y los hashes de sus scripts.
 
-Se conservan los scripts del proveedor, Compose y los archivos de versión como referencia. Se normalizaron los finales de línea para Git. El `.env` original contiene un token de registro y está excluido; `.env.example` conserva los parámetros de conexión y deja vacíos el usuario y el token.
+Se conservan los scripts del proveedor, Compose y los archivos de versión como referencia. Se normalizaron los finales de línea para Git. El `.env` original contiene un token de registro y está excluido; `.env.example` conserva las rutas públicas del registro y deja vacíos el usuario, el token y el host API específico de cada plataforma.
 
 Las imágenes Docker no están en el ZIP ni en este repositorio. Se descargan del registro autenticado del proveedor para ARM64 o x64, con las versiones fijadas en los archivos `.version`.
 

@@ -4,33 +4,31 @@ Herramientas para preparar y administrar Gateways Ubuntu con VXG: VPN IPsec haci
 
 El código y los instaladores viven en este repositorio. Los datos de cada equipo se mantienen en un perfil local; la clave compartida de la VPN se introduce directamente en Ubuntu al instalar.
 
-## Instalación en otro equipo
+## Guía completa de implementación
 
-Empieza con Ubuntu y Docker. El repositorio incluye ahora los scripts del paquete VXG 1.0.16, una plantilla sin credenciales y un módulo de instalación para equipos nuevos:
+Empieza por [Implementación completa, paso a paso](docs/GUIA-COMPLETA.md). Incluye Ubuntu, Docker, Gateway Vsaas basado en VXG, VPN FortiGate, SSH, Cockpit, escáner y credenciales de cámaras, acceso web por túnel SSH, tráfico, Salud Vsaas, Vista global y observación de 24 horas con descarga de informes a Windows.
 
-```bash
-sudo python3 scripts/install.py vxg
-```
-
-El módulo solicita las credenciales del registro de VXG y una contraseña de administrador. No necesita todavía el perfil VPN. Sigue [la guía desde cero](docs/INSTALACION-VXG.md) y valida el servicio principal antes de preparar la administración.
-
-En Ubuntu, abre la carpeta del proyecto y prepara el perfil:
+El repositorio es público: no necesitas iniciar sesión en GitHub para descargarlo.
 
 ```bash
-cp config/equipo.example.json config/equipo.json
-nano config/equipo.json
-python3 scripts/install.py todo --config config/equipo.json --dry-run
+git clone https://github.com/PEPEDATOR-PRO/vsaas-gateway-toolkit.git
+cd vsaas-gateway-toolkit
 ```
 
-Cambia el identificador autorizado en FortiGate, las subredes, la IP de administración, el servidor VPN y la interfaz física. Después aplica:
+Cada organización configura localmente su servidor VPN, su red central y su plataforma Vsaas. Para preparar la VPN una vez por organización:
 
 ```bash
-sudo python3 scripts/install.py todo --config config/equipo.json
+cp config/vpn-central.example.json config/vpn-central.json
+nano config/vpn-central.json
 ```
 
-`todo` instala VPN, SSH, Cockpit y paneles. Integra las tarjetas en la vista global solo si `overview_overlay` es `true`. La observación de 24 horas se inicia por separado.
+Sustituye los valores de ejemplo por los autorizados en tu FortiGate. Después, el asistente solicita únicamente leftid, subred asignada y PSK por Gateway:
 
-Consulta [la guía de instalación](docs/INSTALACION.md) antes de preparar el primer equipo.
+```bash
+sudo python3 scripts/install.py vpn --interactive
+```
+
+El Gateway Vsaas requiere sus propias credenciales de proveedor y se instala con `sudo python3 scripts/install.py vxg` en equipos nuevos, antes de la administración. Sigue la guía completa para instalar las dependencias y validar cada paso. Publicar el código no proporciona una cuenta de nube, un token del registro ni acceso a una VPN.
 
 ## Módulos disponibles
 
@@ -44,7 +42,7 @@ Consulta [la guía de instalación](docs/INSTALACION.md) antes de preparar el pr
 | `resumen` | Tarjetas resumidas en la vista global nativa de Cockpit |
 | `observacion` | Prueba de tráfico, recursos y salud durante 24 horas |
 
-Todos aceptan el mismo perfil. Ejemplo para instalar solo los paneles:
+Los módulos de administración reutilizan el perfil local del equipo; `vxg` no requiere perfil VPN. Ejemplo para instalar solo los paneles:
 
 ```bash
 sudo python3 scripts/install.py paneles --config config/equipo.json
@@ -88,7 +86,7 @@ Las pruebas no instalan servicios ni se conectan a cámaras o servidores reales.
 
 - Puesta en marcha original: Ubuntu 26.10 ARM64, Docker, VXG Uplink Gateway 1.0.16 y strongSwan 6.0.7.
 - Acceso VPN, SSH, Cockpit, escáner y paneles comprobados en el Gateway de referencia.
-- El ciclo del recopilador y sus límites tienen pruebas simuladas. El informe de la primera prueba real de 24 horas queda pendiente de revisión.
+- Prueba de referencia de 24 horas con dos cámaras revisada: monitor alrededor de 0.17% de CPU total y 12.53 MB de JSONL. Son datos de ese equipo, no una garantía de rendimiento ni disponibilidad de video.
 - La receta VPN reproduce una configuración heredada IKEv1 de FortiGate. Al cambiar de distribución o versión de strongSwan, comprueba que el paquete incluya ese protocolo y los algoritmos acordados.
 - Las tarjetas de Vista global son una adaptación local reversible. Pueden necesitar reaplicarse después de actualizar Cockpit.
 - Salud Vsaas separa las señales locales de la confirmación de nube y video. Un proceso activo o un socket TCP no acredita transmisión extremo a extremo.
@@ -101,6 +99,7 @@ La prueba de 24 horas continúa en el equipo después de cerrar Cockpit. Sus dat
 
 ## Documentación
 
+- [Guía completa de implementación](docs/GUIA-COMPLETA.md)
 - [Instalación y parámetros por equipo](docs/INSTALACION.md)
 - [Instalación de VXG desde cero](docs/INSTALACION-VXG.md)
 - [Operación, diagnósticos y prueba de 24 horas](docs/OPERACION.md)

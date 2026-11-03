@@ -1,5 +1,7 @@
 # Instalación y parámetros por equipo
 
+Consulta [la guía completa de implementación](GUIA-COMPLETA.md) para el orden de todos los módulos y los comandos de Ubuntu/PowerShell.
+
 ## Antes de comenzar
 
 Se requiere Ubuntu ARM64 o x86_64 con Python 3, acceso administrativo, Internet y el Gateway VXG ya instalado en Docker. Comprueba los nombres de las interfaces con `ip -4 addr` y los contenedores con `sudo docker ps`.
@@ -12,13 +14,24 @@ En FortiGate debe existir un túnel con la identidad, clave compartida y selecto
 
 ### Configuración rápida de VPN para un equipo nuevo
 
+Primero prepara los parámetros de tu organización:
+
+```bash
+cp config/vpn-central.example.json config/vpn-central.json
+nano config/vpn-central.json
+```
+
+Sustituye `vpn_server` y `vpn_remote_subnet` por tus valores reales; la dirección de documentación no permite instalar. El archivo está ignorado por Git y no lleva PSK.
+
+Después ejecuta el asistente:
+
 ```bash
 sudo python3 scripts/install.py vpn --interactive
 ```
 
 Solo solicita `leftid` (sin `@`), la subred asignada con prefijo CIDR y la clave compartida sin mostrarla. El túnel debe estar creado en FortiGate con esos datos y no estar siendo utilizado por otro Gateway.
 
-El asistente usa el servidor central `35.161.111.223` y la red remota `172.31.0.0/17`. Calcula la IP de administración como el primer host de la subred: por ejemplo, `10.254.0.0/29` da `10.254.0.1`. Esa dirección debe estar disponible para este equipo. La subred se introduce como dirección de red, no como IP de host.
+El asistente usa el servidor central y la red remota de `config/vpn-central.json`; si ese archivo no existe, reutiliza los del perfil local existente. En equipos nuevos, sin parámetros centrales válidos, se detiene antes de solicitar datos. Calcula la IP de administración como el primer host de la subred: por ejemplo, `10.254.0.0/29` da `10.254.0.1`. Esa dirección debe estar disponible para este equipo. La subred se introduce como dirección de red, no como IP de host.
 
 Guarda el perfil sin clave en `config/equipo.json` (ignorado por Git); los demás módulos reutilizan ese perfil. Sin un perfil existente, `vpn` inicia el asistente automáticamente. `--interactive --dry-run` consulta solo identidad y subred, muestra el resultado y no guarda ni instala nada. La clave se solicita únicamente durante la instalación real y se almacena en el archivo protegido de strongSwan.
 
