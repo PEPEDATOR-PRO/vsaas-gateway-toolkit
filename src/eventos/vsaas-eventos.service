@@ -1,0 +1,19 @@
+[Unit]
+Description=Colector opcional de eventos de camaras Vsaas
+Requires=docker.service
+Wants=network-online.target strongswan.service
+After=network-online.target docker.service strongswan.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/vsaas-eventos iniciar
+ExecStop=/usr/local/bin/vsaas-eventos detener
+Restart=on-failure
+RestartSec=20s
+TimeoutStartSec=180
+TimeoutStopSec=100
+
+[Install]
+WantedBy=multi-user.target

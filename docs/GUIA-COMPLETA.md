@@ -401,6 +401,17 @@ No ejecutes `todo` para una actualización visual: también aplica VPN, SSH y Co
 
 ## 22. Referencia de módulos y archivos
 
+### Herramienta adicional: colector de eventos
+
+Después de tener la VPN y Cockpit funcionando puedes añadir el colector ONVIF/RTSP/HTTP, con volumen e historial separados:
+
+```bash
+sudo python3 scripts/install.py eventos
+sudo vsaas-eventos estado
+```
+
+Cierra sesión en Cockpit y vuelve a entrar: **Herramientas → Colector de eventos**. La entrada permite consultar el estado y abrir su panel por la IP VPN, puerto 8081. Obtén la llave local con `sudo vsaas-eventos llave`. Cada cámara se agrega expresamente en el panel; no se copian las credenciales del Gateway Vsaas. Revisa los límites de almacenamiento y las instrucciones de [Colector de eventos](COLECTOR-EVENTOS.md) antes de activar metadatos continuos. Este módulo no se instala con `todo`.
+
 | Módulo | Instalación / propósito |
 | --- | --- |
 | `vxg` | Gateway Vsaas basado en VXG; solo instalación inicial |
@@ -410,6 +421,7 @@ No ejecutes `todo` para una actualización visual: también aplica VPN, SSH y Co
 | `paneles` | Escáner, credenciales, acceso web, tráfico y Salud Vsaas |
 | `resumen` | Recursos actualizados y tarjetas en Vista global |
 | `observacion` | Sesión nueva de 24 horas, independiente del navegador |
+| `eventos` | Captura opcional ONVIF/RTSP/HTTP y acceso desde Cockpit |
 | `todo` | VPN, SSH, Cockpit, paneles y resumen si lo pide el perfil; no instala VXG ni inicia observación |
 
 `config/equipo.json` y `config/vpn-central.json` son archivos locales ignorados por Git. Los datos de cámaras permanecen en los volúmenes de Docker. La adaptación de Cockpit está en `/usr/local/share/cockpit/vsaas_system`; los recursos del toolkit en `/usr/local/share/cockpit/gateway_scanner`. La retirada reversible de las tarjetas y los respaldos están descritos en [mantenimiento](MANTENIMIENTO.md).

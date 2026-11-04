@@ -1,0 +1,7 @@
+{
+  "version": "1.0.0",
+  "requires": {"cockpit": "250"},
+  "tools": {
+    "index": {"label": "Colector de eventos", "path": "index.html", "order": 86}
+  }
+}

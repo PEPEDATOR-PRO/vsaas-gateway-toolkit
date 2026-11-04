@@ -1,5 +1,12 @@
 # Cambios
 
+## 0.4.0 — 2026-11-04
+
+- Colector de eventos de cámaras importado como módulo opcional `eventos`, sin datos, catálogos, credenciales ni eventos reales del proyecto original.
+- Despliegue Docker separado con persistencia, llaves locales, presupuesto preventivo de almacenamiento y límites de recursos.
+- Acceso desde una herramienta de Cockpit y por la IP VPN, puerto 8081; recuperación de arranque mediante systemd.
+- Pruebas ONVIF/RTSP/HTTP locales, interfaz y guía de instalación/operación.
+
 ## 0.3.0 — 2026-11-03
 
 - Guía completa de implementación pública con todos los módulos, Gateway Vsaas, verificación y exportación de informes a Windows.

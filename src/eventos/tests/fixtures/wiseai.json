@@ -1,0 +1,49 @@
+{
+  "id": 1,
+  "camera_id": "synthetic-camera",
+  "received_at": "2026-01-01T00:00:00Z",
+  "topic": "ONVIF/VideoAnalytics/Objects",
+  "transport": "rtsp_metadata",
+  "metadata": {
+    "objects": [
+      {
+        "object_id": "7",
+        "classes": [
+          {
+            "type": "Human",
+            "likelihood": "0.58"
+          }
+        ],
+        "details": {
+          "tag": "{urn:synthetic:analytics}Object",
+          "attributes": {},
+          "children": [
+            {
+              "tag": "{urn:synthetic:analytics}Hat",
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "{urn:synthetic:analytics}Wear",
+                  "attributes": {},
+                  "text": "false"
+                }
+              ]
+            },
+            {
+              "tag": "{urn:synthetic:analytics}Tops",
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "{urn:synthetic:analytics}ColorString",
+                  "attributes": {},
+                  "text": "Black"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "frame_xml": "<Frame><Object ObjectId=\"7\"/></Frame>"
+  }
+}

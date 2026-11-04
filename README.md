@@ -41,6 +41,7 @@ El Gateway Vsaas requiere sus propias credenciales de proveedor y se instala con
 | `paneles` | Escáner de red, Tráfico de red y Salud Vsaas |
 | `resumen` | Tarjetas resumidas en la vista global nativa de Cockpit |
 | `observacion` | Prueba de tráfico, recursos y salud durante 24 horas |
+| `eventos` | Colector opcional ONVIF/RTSP/HTTP, historial propio y acceso desde Cockpit |
 
 Los módulos de administración reutilizan el perfil local del equipo; `vxg` no requiere perfil VPN. Ejemplo para instalar solo los paneles:
 
@@ -63,6 +64,8 @@ dist/                Instaladores generados y sumas SHA256
 
 ## Generar instaladores transportables
 
+El módulo opcional `eventos` se instala desde una copia completa del repositorio y requiere construir una imagen Docker. Consulta [Colector de eventos](docs/COLECTOR-EVENTOS.md). No se agrega automáticamente con `todo` ni depende de que exista un perfil JSON antiguo si la IP VPN ya está asignada.
+
 ```bash
 python3 tools/build.py
 ```
@@ -81,6 +84,15 @@ python3 tools/build.py
 ```
 
 Las pruebas no instalan servicios ni se conectan a cámaras o servidores reales. La automatización de GitHub ejecuta estas comprobaciones al subir cambios.
+
+Para las pruebas HTTP/ONVIF/RTSP del colector opcional, utiliza un entorno Python de desarrollo separado:
+
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install -r src/eventos/requirements-dev.txt
+PYTHONPATH=src/eventos python -m pytest src/eventos/tests -q
+```
 
 ## Entorno comprobado y límites
 
@@ -103,5 +115,6 @@ La prueba de 24 horas continúa en el equipo después de cerrar Cockpit. Sus dat
 - [Instalación y parámetros por equipo](docs/INSTALACION.md)
 - [Instalación de VXG desde cero](docs/INSTALACION-VXG.md)
 - [Operación, diagnósticos y prueba de 24 horas](docs/OPERACION.md)
+- [Colector de eventos adicional](docs/COLECTOR-EVENTOS.md)
 - [Mantenimiento y publicación de versiones](docs/MANTENIMIENTO.md)
 - [Fuentes técnicas](docs/FUENTES.md)

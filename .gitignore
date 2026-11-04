@@ -1,4 +1,7 @@
 __pycache__/
+.pytest_cache/
+data/
+*.token
 *.py[cod]
 node_modules/
 .venv/

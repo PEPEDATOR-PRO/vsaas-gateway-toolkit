@@ -1,0 +1,5 @@
+fastapi==0.143.2
+uvicorn==0.54.0
+requests==2.34.2
+defusedxml==0.7.1
+cryptography==48.0.1

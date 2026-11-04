@@ -13,7 +13,7 @@ except ImportError:
 
 ROOT=Path(__file__).resolve().parents[1]
 CONFIG_DIR=Path('/etc/vsaas-gateway')
-MODULES=['vxg','vpn','ssh','cockpit','paneles','resumen','observacion','todo']
+MODULES=['vxg','vpn','ssh','cockpit','paneles','resumen','observacion','eventos','todo']
 
 
 def plan(module,profile):
@@ -28,8 +28,19 @@ def main():
     parser.add_argument('--dry-run',action='store_true')
     parser.add_argument('--interactive',action='store_true',help='Configurar VPN solicitando leftid, subred y PSK local')
     parser.add_argument('--vxg-env',help='Archivo local privado de credenciales del proveedor para el módulo vxg')
+    parser.add_argument('--events-ip',help='IP VPN ya asignada al Gateway para instalar solo el colector de eventos')
     args=parser.parse_args()
     if args.interactive and args.module!='vpn':parser.error('--interactive solo se utiliza con vpn')
+    if args.events_ip and args.module!='eventos':parser.error('--events-ip solo se utiliza con eventos')
+    if args.module=='eventos':
+        if args.dry_run:
+            print('Simulación: colector opcional en Docker, puerto VPN 8081, volumen propio y acceso desde Cockpit. No se ejecutó Docker ni se cambió la VPN.')
+            return
+        command=[sys.executable,str(ROOT/'scripts/install_events.py')]
+        if Path(args.config).is_file():command+=['--config',args.config]
+        if args.events_ip:command+=['--vpn-ip',args.events_ip]
+        subprocess.run(command,check=True)
+        return
     if args.module=='vxg':
         project='camera_agent_gateway'
         if Path(args.config).is_file():project=load_profile(args.config,ready=False)['compose_project']

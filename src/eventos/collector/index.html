@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Colector · Cámaras</title>
+<link rel="stylesheet" href="/assets/panel.css">
+<script src="/assets/panel.js?v=0.4.0" defer></script>
+</head><body>
+<header><h1>Colector de eventos</h1><p class="muted">Recibe los eventos de tus cámaras y explora sus metadatos.</p></header>
+<section id="monitor" aria-labelledby="monitor-title">
+<div class="section-heading"><div><h2 id="monitor-title">Eventos en tiempo real</h2><p class="muted" id="live-status" role="status">Conecta tu acceso para ver los eventos.</p></div><button id="pause" disabled aria-pressed="false">Pausar vista</button></div>
+<div class="toolbar">
+<label>Cámara<select id="filter"><option value="">Todas las cámaras</option></select></label>
+<label>Tipo de evento<input id="topic" placeholder="Buscar en el tipo de evento"></label>
+<button id="load" disabled>Aplicar filtros</button><button id="export" disabled>Exportar todos los visibles (JSON)</button>
+</div>
+<div class="event-workspace">
+<div class="event-column"><div class="column-heading"><h3>Eventos recibidos</h3><span id="visible-count" class="muted">0 visibles</span></div>
+<p class="muted compact">Los más nuevos aparecen arriba. Selecciona un evento para ver su detalle.</p>
+<div id="events" class="event-list" aria-label="Lista de eventos"><p class="empty">Conecta tu acceso para comenzar.</p></div>
+<button id="older" class="secondary" disabled>Cargar anteriores</button><p class="muted compact">La vista conserva hasta 500 eventos. Todos permanecen guardados en el historial.</p></div>
+<div class="detail-column" aria-labelledby="detail-title">
+<div class="column-heading"><h3 id="detail-title">Detalle del evento</h3><button id="download-simple" class="secondary" hidden>Descargar JSON simple</button><button id="download" class="secondary" hidden>Descargar original completo</button></div>
+<p id="detail-empty" class="empty">Selecciona un evento de la izquierda.</p>
+<div id="detail-content" hidden><dl id="detail-summary"></dl><h4>JSON simplificado del evento</h4><pre id="detail-metadata" tabindex="0"></pre>
+<details id="xml-section" hidden><summary>Ver XML de los metadatos</summary><pre id="detail-xml" tabindex="0"></pre></details></div>
+</div></div>
+<p id="feed-error" role="alert" hidden></p>
+<p class="muted compact">Pausar congela esta vista. El colector sigue recibiendo y guardando eventos. Al reanudar se incorporan los pendientes.</p>
+</section>
+<section><h2>Acceso al colector</h2><label>Llave de acceso (administración o consulta)<input id="token" type="password" autocomplete="off"></label><p><button id="connect">Conectar</button> <span id="total"></span></p><p id="access-note" class="muted compact">Usa tu llave de administración o la llave de consulta que te compartieron.</p><p id="storage-status" class="muted compact" role="status"></p></section>
+<section><h2>Cámaras</h2><div class="scroll"><table><thead><tr><th>Nombre</th><th>Modo</th><th>Estado</th><th>Última conexión</th><th></th></tr></thead><tbody id="cameras"></tbody></table></div></section>
+<section id="camera-management" hidden><h2>Agregar cámara</h2><form id="camera">
+<label>Nombre<input name="name" required placeholder="Acceso principal"></label>
+<label>Conexión<select name="mode" id="mode"><option value="onvif">ONVIF · IP y credenciales</option><option value="webhook">HTTP · La cámara envía eventos</option></select></label>
+<label id="protocol-field">Protocolo de la cámara<select id="camera-protocol"><option value="http">HTTP</option><option value="https">HTTPS</option></select></label>
+<label>IP o URL ONVIF<input name="device_url" placeholder="192.168.1.100:80"></label>
+<label>Usuario ONVIF<input name="username" autocomplete="off"></label><label>Contraseña ONVIF<input name="password" type="password" autocomplete="new-password"></label>
+<label id="certificate-field" hidden>Certificado HTTPS<select name="verify_tls" disabled><option value="true">Verificar certificado</option><option value="false">Aceptar certificado propio</option></select></label>
+<button>Guardar y conectar</button></form><p><small>Activa ONVIF y sus permisos de eventos en la cámara. En modo HTTP recibirás una URL y un token al guardar.</small></p><pre id="message" role="status"></pre></section>
+</body></html>

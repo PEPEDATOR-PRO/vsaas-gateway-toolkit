@@ -1,0 +1,69 @@
+{
+  "source": "Colector de eventos ONVIF/RTSP desarrollado previamente en el proyecto local de c\u00e1maras",
+  "imported_files": [
+    {
+      "path": "collector/__init__.py",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "collector/app.py",
+      "source_sha256": "ede9b836dc98770a5e4ca578cc56732bd4b961f0ed8b558324bef5ab078d8d0f"
+    },
+    {
+      "path": "collector/manager.py",
+      "source_sha256": "133b9cac8b5269022912719bf1fb3a4ce7484d6a4507796b269a223980416ee5"
+    },
+    {
+      "path": "collector/onvif.py",
+      "source_sha256": "20cfde4d138312372cc5b019a8a54887123ecb50707b6febe0407bcff7013db3"
+    },
+    {
+      "path": "collector/rtsp.py",
+      "source_sha256": "0cb9ef52ffdd929f9cb46a93685b52601ba8a5c05b33a9d8ac5a0ac0284db97c"
+    },
+    {
+      "path": "collector/storage.py",
+      "source_sha256": "1dbaa3c28ae0efe85e6c90c89b7fa7c16f1593c2b7d7a29d4fd17020304e214e"
+    },
+    {
+      "path": "collector/index.html",
+      "source_sha256": "c1058459b7cf0f3361ba987bc6236b8c5c34247ca5cfca99276266f473593178"
+    },
+    {
+      "path": "collector/static/panel.js",
+      "source_sha256": "42600735ea19aff45e8521b19f379c518b4881c07487d20c8bf5683b431e5eb1"
+    },
+    {
+      "path": "collector/static/panel.css",
+      "source_sha256": "17355dff294fb9229ea4ac38f280e0d8d5708bcc14ac5250fd4c9e58ea3e1b0e"
+    },
+    {
+      "path": "tests/test_collector.py",
+      "source_sha256": "048606b5187beda60ba04d00012501bc6253dcd4511e4640dfdcee92e85d7eeb"
+    },
+    {
+      "path": "tests/test_rtsp.py",
+      "source_sha256": "4e6bc5b92ebc8e1551706db9400fc04d44e21c682d6934b97f13262f70c3086c"
+    },
+    {
+      "path": "tests/panel.test.cjs",
+      "source_sha256": "599e7640964a47b7b73722617500ddd41037cd38f62f486d48f36e4bfe430246"
+    },
+    {
+      "path": "Dockerfile",
+      "source_sha256": "839c03b68644e68d50f7fff5713b96d48af2b83ad3dcb6d0708ec5756d98a6b3"
+    }
+  ],
+  "excluded": [
+    "data/",
+    ".venv/",
+    ".git/",
+    "catalogos de equipos reales",
+    "llaves y tokens",
+    "ngrok y herramientas de Windows",
+    "fixtures procedentes de eventos reales"
+  ],
+  "notes": [
+    "Las adaptaciones del Gateway se documentan en docs/COLECTOR-EVENTOS.md."
+  ]
+}
