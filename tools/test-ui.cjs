@@ -10,3 +10,5 @@ for(const test of ['test_ui.cjs','test_traffic.cjs','test_health_ui.cjs','test_o
 }
 const events=spawnSync(process.execPath,['--test',path.join(root,'src/eventos/tests/panel.test.cjs')],{cwd:root,stdio:'inherit'});
 if(events.status!==0)process.exit(events.status||1);
+const forwarding=spawnSync(process.execPath,[path.join(root,'src/eventos/tests/forwarding_ui.cjs')],{cwd:root,stdio:'inherit'});
+if(forwarding.status!==0)process.exit(forwarding.status||1);

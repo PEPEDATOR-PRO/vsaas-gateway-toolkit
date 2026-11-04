@@ -7,6 +7,7 @@ let connected = false, paused = false, initialized = false, lastId = 0, generati
 let pollBusy = false, loadsInFlight = 0, olderBusy = false, lastUpdate = null;
 let filters = {camera: '', topic: ''};
 let canManage = false;
+let forwardingLoaded=false;
 
 function syncConnection() {
   const onvif = $('#mode').value === 'onvif', https = $('#camera-protocol').value === 'https';
@@ -69,9 +70,10 @@ async function refresh() {
   canManage = status.access_role !== 'viewer';
   $('#camera-management').hidden = !canManage;
   $('#access-note').textContent = canManage ? 'Acceso de administración.' : 'Solo consulta · Puedes ver y descargar eventos. La configuración de cámaras está protegida.';
-  $('#total').textContent = status.events + ' eventos guardados';
+  $('#total').textContent = status.events + ' eventos en la cola local';
+  await refreshForwarding();
   const disk=status.storage;
-  $('#storage-status').textContent=disk?(disk.blocked?'Almacenamiento limitado: hay capturas pendientes. Conservamos el historial. ':'')+'Eventos y base: '+(disk.bytes/1024**2).toFixed(1)+' MiB'+(disk.limit_bytes?' / '+(disk.limit_bytes/1024**2).toFixed(0)+' MiB':'')+'. Libres en disco: '+(disk.free_bytes/1024**3).toFixed(1)+' GiB.':'';
+  $('#storage-status').textContent=disk?(disk.blocked?'Espacio libre insuficiente o lote demasiado grande. ':'')+'Base y diario: '+(disk.bytes/1e6).toFixed(1)+' MB'+(disk.limit_bytes?' · Máximo total: '+(disk.limit_bytes/1e9).toFixed(2)+' GB':'')+(disk.database_limit_bytes?' · Capacidad de base: '+(disk.database_limit_bytes/1e6).toFixed(0)+' MB (resto reservado para recuperación)':'')+' · Libres en disco: '+(disk.free_bytes/1024**3).toFixed(1)+' GiB.':'';
   $('#cameras').replaceChildren();
   const cameraFilter = $('#filter'), previous = cameraFilter.value;
   const available = new Set(status.cameras.map(camera => camera.id));
@@ -327,3 +329,28 @@ updateLiveStatus();
 $('#download-simple').onclick = () => {
   if (selectedEvent) download(new Blob([JSON.stringify(simplifyEvent(selectedEvent), null, 2)], {type: 'application/json'}), 'evento-' + selectedEvent.id + '-simple.json');
 };
+
+async function refreshForwarding(){
+  const data=await api('/api/forwarding');
+  $('#forwarding-form').hidden=!canManage;
+  $('#forwarding-status').textContent=(data.enabled?'Envío activo':'Envío desactivado')+' · Pendientes: '+(data.pending??0)+' · Entregados: '+(data.sent??0)+' · Descartados sin enviar: '+(data.dropped??0)+' · '+(data.last_result||'Sin envíos')+(data.host?' · Destino: '+data.scheme+'://'+data.host+':'+data.port+data.path:'');
+  if(!forwardingLoaded&&data.host){
+    $('#forward-scheme').value=data.scheme;$('#forward-host').value=data.host;$('#forward-port').value=data.port;$('#forward-path').value=data.path;$('#forward-enabled').checked=!!data.enabled;
+  }
+  forwardingLoaded=true;
+}
+$('#forwarding-form').onsubmit=async event=>{
+  event.preventDefault();
+  try{
+    await api('/api/forwarding',{method:'PUT',body:JSON.stringify({enabled:$('#forward-enabled').checked,scheme:$('#forward-scheme').value,host:$('#forward-host').value,port:Number($('#forward-port').value),path:$('#forward-path').value,token:$('#forward-token').value,clear_token:$('#forward-clear-token').checked})});
+    $('#forwarding-message').textContent='Configuración guardada. Los fallos se reintentan automáticamente mientras el envío esté activo.';await refreshForwarding();
+  }catch(error){$('#forwarding-message').textContent=error.message;}
+  finally{$('#forward-token').value='';$('#forward-clear-token').checked=false;}
+};
+$('#forward-test').onclick=async()=>{
+  $('#forward-test').disabled=true;
+  try{const result=await api('/api/forwarding/test',{method:'POST'});$('#forwarding-message').textContent=result.detail;}
+  catch(error){$('#forwarding-message').textContent=error.message;}
+  finally{$('#forward-test').disabled=false;}
+};
+$('#forward-scheme').onchange=()=>{$('#forward-port').value=$('#forward-scheme').value==='https'?443:80;};

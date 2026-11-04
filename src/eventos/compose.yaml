@@ -8,7 +8,8 @@ services:
       - "127.0.0.1:8081:8080"
       - "${VPN_IP_ADMIN:?Falta IP de administracion}:8081:8080"
     environment:
-      COLLECTOR_MAX_DATA_MB: "${COLLECTOR_MAX_DATA_MB:-1024}"
+      COLLECTOR_MAX_DATA_BYTES: "2000000000"
+      COLLECTOR_ROLLOVER: "1"
       COLLECTOR_MIN_FREE_MB: "512"
     volumes:
       - collector-data:/data

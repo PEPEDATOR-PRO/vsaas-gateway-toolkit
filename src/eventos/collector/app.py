@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from .manager import Manager
 from .onvif import parse_events
 from .storage import Store, StorageFull
+from .forwarding import Forwarder
 
 
 class MetadataSource(BaseModel):
@@ -95,18 +96,22 @@ def create_app(data_dir=None):
     if not viewer_token or hmac.compare_digest(viewer_token.encode(), token.encode()):
         raise ValueError('La llave de consulta debe ser distinta de la llave de administración')
     manager = Manager(store)
+    forwarder=Forwarder(store)
 
     @asynccontextmanager
     async def lifespan(app):
+        forwarder.start()
         for camera in store.cameras(secrets=True):
             manager.start(camera)
         yield
+        await asyncio.to_thread(forwarder.close)
         await asyncio.to_thread(manager.close)
 
     app = FastAPI(title='Colector de eventos de cámaras', version='1.0.0', lifespan=lifespan)
     app.mount('/assets', StaticFiles(directory=Path(__file__).with_name('static')), name='assets')
     app.state.store = store
     app.state.manager = manager
+    app.state.forwarder=forwarder
 
     def authorize(request: Request):
         supplied = request.headers.get('Authorization', '').removeprefix('Bearer ')
@@ -188,6 +193,19 @@ def create_app(data_dir=None):
         updated = next(c for c in store.cameras(secrets=True) if c['id'] == camera_id)
         manager.start(updated)
         return {'id': camera_id, 'metadata_enabled': bool(source.metadata_rtsp_url)}
+
+    @app.get('/api/forwarding',dependencies=[Depends(authorize_read)])
+    def forwarding_status():return forwarder.status()
+
+    @app.put('/api/forwarding',dependencies=[Depends(authorize)])
+    def forwarding_config(data: dict):
+        try:return forwarder.configure(data)
+        except ValueError as exc:raise HTTPException(422,str(exc)) from None
+
+    @app.post('/api/forwarding/test',dependencies=[Depends(authorize)])
+    def forwarding_test():
+        try:return forwarder.test()
+        except ValueError as exc:raise HTTPException(422,str(exc)) from None
 
     @app.get('/api/events', dependencies=[Depends(authorize_read)])
     def events(camera_id: str | None = None, topic: str | None = None,

@@ -24,11 +24,16 @@ class Store:
     def __init__(self, directory):
         self.directory = Path(directory)
         self.directory.mkdir(parents=True, exist_ok=True)
-        self.max_bytes=int(os.environ.get('COLLECTOR_MAX_DATA_MB','0'))*1024**2
+        self.max_bytes=int(os.environ.get('COLLECTOR_MAX_DATA_BYTES','0')) or int(os.environ.get('COLLECTOR_MAX_DATA_MB','0'))*1024**2
+        self.rollover=os.environ.get('COLLECTOR_ROLLOVER','0')=='1'
+        if self.rollover:self.max_bytes=min(self.max_bytes or 2000000000,2000000000)
         self.min_free_bytes=int(os.environ.get('COLLECTOR_MIN_FREE_MB','0'))*1024**2
         if self.max_bytes<0 or self.min_free_bytes<0:raise ValueError('Los límites de almacenamiento deben ser positivos.')
         self.write_lock=threading.Lock()
         self.storage_blocked=False
+        self.inflight_event=None
+        if self.rollover and sum(path.stat().st_size for path in self.directory.glob('events.sqlite3*') if path.is_file())>int(self.max_bytes*0.48):
+            raise StorageFull('La base anterior necesita respaldo y compactación antes de migrar al límite total de 2 GB.')
         key_file = self.directory / 'secret.key'
         try:
             with key_file.open('xb') as handle:
@@ -40,7 +45,7 @@ class Store:
         self.path = self.directory / 'events.sqlite3'
         with self.connect() as db:
             db.executescript('''
-                PRAGMA journal_mode=WAL;
+                PRAGMA journal_mode=DELETE;
                 CREATE TABLE IF NOT EXISTS cameras (
                     id TEXT PRIMARY KEY, config TEXT NOT NULL,
                     status TEXT NOT NULL DEFAULT 'pendiente',
@@ -51,6 +56,7 @@ class Store:
                     source_time TEXT, topic TEXT NOT NULL, transport TEXT NOT NULL,
                     metadata TEXT NOT NULL, raw BLOB NOT NULL,
                     content_type TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS delivery_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS metadata_status (
                     camera_id TEXT PRIMARY KEY, status TEXT NOT NULL,
                     last_error TEXT, last_seen TEXT);
@@ -58,12 +64,20 @@ class Store:
                 CREATE INDEX IF NOT EXISTS events_received ON events(received_at);
             ''')
 
+        if self.max_bytes and self.rollover:
+            # Reserve room for a full rollback journal plus its headers.
+            with self.connect() as db:
+                pages=int(self.max_bytes*0.48)//db.execute("PRAGMA page_size").fetchone()[0]
+                actual=db.execute('PRAGMA page_count').fetchone()[0]
+                if actual>pages:raise StorageFull('La base existente supera el presupuesto de migración; conserva un respaldo antes de compactarla.')
+
     @contextmanager
     def connect(self):
         db = sqlite3.connect(self.path, timeout=30)
         db.row_factory = sqlite3.Row
         try:
             db.execute('PRAGMA synchronous=FULL')
+            if self.max_bytes and self.rollover:db.execute('PRAGMA max_page_count='+str(max(1,int(self.max_bytes*0.48)//db.execute('PRAGMA page_size').fetchone()[0])))
             with db:
                 yield db
         finally:
@@ -128,23 +142,35 @@ class Store:
         # The complete inbound body is retained for each notification, including extensions.
         with self.write_lock:
             estimated=sum(len(raw)+len(json.dumps(event,ensure_ascii=False).encode())+8192 for event in events)
+            if self.rollover and estimated>int(self.max_bytes*0.45):
+                raise StorageFull('El lote es demasiado grande para la cola; no se descartaron eventos anteriores.')
             state=self.storage_status()
-            if (self.max_bytes and state['bytes']+estimated>self.max_bytes) or state['free_bytes']-estimated<self.min_free_bytes:
+            if state['free_bytes']-estimated<self.min_free_bytes:
                 self.storage_blocked=True
-                raise StorageFull('Almacenamiento del colector limitado: no se guardaron nuevos eventos ni se borró el historial.')
-            self.storage_blocked=False
-            with self.connect() as db:
-                for event in events:
-                    db.execute('''INSERT INTO events
-                        (camera_id, received_at, source_time, topic, transport, metadata, raw, content_type)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
-                        (camera_id, now(), event.get('source_time'), event.get('topic', 'unknown'),
-                         transport, json.dumps(event.get('metadata', {}), ensure_ascii=False), raw, content_type))
+                raise StorageFull('Espacio libre insuficiente; no se pudo guardar el lote.')
+            if not self.rollover and self.max_bytes and state['bytes']+estimated>self.max_bytes:
+                self.storage_blocked=True
+                raise StorageFull('Almacenamiento del colector limitado; historial conservado.')
+            while True:
+                try:
+                    with self.connect() as db:
+                        for event in events:
+                            db.execute('INSERT INTO events(camera_id,received_at,source_time,topic,transport,metadata,raw,content_type) VALUES(?,?,?,?,?,?,?,?)',
+                                (camera_id,now(),event.get('source_time'),event.get('topic','unknown'),transport,json.dumps(event.get('metadata',{}),ensure_ascii=False),raw,content_type))
+                    self.storage_blocked=False
+                    return
+                except sqlite3.OperationalError as exc:
+                    if not self.rollover or 'full' not in str(exc).lower():raise
+                    with self.connect() as db:
+                        ids=[row[0] for row in db.execute('SELECT id FROM events WHERE id != ? ORDER BY id LIMIT 100',(self.inflight_event or -1,))]
+                        if not ids:raise StorageFull('El lote es demasiado grande para el límite local.') from None
+                        db.executemany('DELETE FROM events WHERE id=?',[(identifier,) for identifier in ids])
+                        db.execute("INSERT INTO delivery_settings VALUES('dropped',?) ON CONFLICT(key) DO UPDATE SET value=CAST(value AS INTEGER)+?",(str(len(ids)),len(ids)))
 
     def storage_status(self):
         size=sum(path.stat().st_size for path in self.directory.glob('events.sqlite3*') if path.is_file())
         free=shutil.disk_usage(self.directory).free
-        return {'bytes':size,'limit_bytes':self.max_bytes or None,'free_bytes':free,
+        return {'bytes':size,'limit_bytes':self.max_bytes or None,'database_limit_bytes':int(self.max_bytes*0.48)//4096*4096 if self.rollover else self.max_bytes or None,'free_bytes':free,
                 'blocked':bool(self.storage_blocked or (self.max_bytes and size>=self.max_bytes) or free<self.min_free_bytes)}
 
     def events(self, camera_id=None, topic=None, after_id=0, limit=100,

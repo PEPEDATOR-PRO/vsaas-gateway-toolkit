@@ -41,7 +41,7 @@ El Gateway Vsaas requiere sus propias credenciales de proveedor y se instala con
 | `paneles` | Escáner de red, Tráfico de red y Salud Vsaas |
 | `resumen` | Tarjetas resumidas en la vista global nativa de Cockpit |
 | `observacion` | Prueba de tráfico, recursos y salud durante 24 horas |
-| `eventos` | Colector opcional ONVIF/RTSP/HTTP, historial propio y acceso desde Cockpit |
+| `eventos` | Colector opcional ONVIF/RTSP/HTTP, cola local de 2 GB, envío JSON y acceso desde Cockpit |
 
 Los módulos de administración reutilizan el perfil local del equipo; `vxg` no requiere perfil VPN. Ejemplo para instalar solo los paneles:
 

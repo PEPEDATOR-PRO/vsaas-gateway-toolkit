@@ -65,7 +65,7 @@ def install(profile=None,vpn_ip=None):
     for name in ['compose.yaml']:shutil.copyfile(SOURCE/name,TARGET/name)
     settings=TARGET/'settings.json';settings.write_text(json.dumps({'vpn_admin_ip':address})+'\n');settings.chmod(0o600)
     env=TARGET/'.env'
-    if not env.exists():env.write_text('VPN_IP_ADMIN='+address+'\nCOLLECTOR_MAX_DATA_MB=1024\n')
+    if not env.exists():env.write_text('VPN_IP_ADMIN='+address+'\nCOLLECTOR_MAX_DATA_BYTES=2000000000\n')
     env.chmod(0o600)
     (TARGET/'.toolkit-eventos').write_text('v1\n')
     LIBEXEC.mkdir(parents=True,exist_ok=True);BIN.mkdir(parents=True,exist_ok=True)

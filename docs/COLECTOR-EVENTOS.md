@@ -109,31 +109,54 @@ Acepta JSON, XML o binario, con un máximo de 8 MiB por mensaje. Solo responde c
 
 El panel carga los eventos más recientes, conserva hasta 500 en la vista y permite filtrar por cámara y tipo. Pausar la vista no detiene la captura; al reanudar recupera los pendientes disponibles. Ocultar la pestaña detiene las consultas periódicas del navegador, mientras la captura sigue en Docker.
 
-Selecciona un evento para ver el JSON simplificado o su XML. Puedes descargar un solo JSON simple, todos los visibles o el cuerpo original completo. El historial de SQLite no desaparece al quitar una cámara. Los cuerpos y extensiones del fabricante permanecen en el historial, por lo que las exportaciones pueden incluir datos operativos o personales.
+Selecciona un evento para ver el JSON simplificado o su XML. Puedes descargar un solo JSON simple, todos los visibles o el cuerpo original completo. Quitar una cámara no borra inmediatamente su cola, que sigue sujeta a envío y retención. Los cuerpos y extensiones del fabricante permanecen en el historial, por lo que las exportaciones pueden incluir datos operativos o personales.
 
-## 10. Recursos y almacenamiento
+## 10. Cola de envío y límite local de 2 GB
 
-Los límites iniciales de Compose son:
+El módulo establece `COLLECTOR_MAX_DATA_BYTES=2000000000` y `COLLECTOR_ROLLOVER=1`. Son 2 GB decimales para la base de eventos y su diario SQLite, no 2 GiB. El límite no incluye imágenes Docker, logs de Docker, respaldos ni otros servicios de la Raspberry.
 
-| Recurso | Configuración |
-| --- | --- |
-| CPU del contenedor | 0.50 CPU, equivalente a medio núcleo; no es 50% de toda una Raspberry de cuatro núcleos |
-| Memoria | 384 MiB, sin swap adicional para ese contenedor |
-| Procesos | 128 |
-| Logs de Docker | Hasta 3 archivos de 5 MB |
-| Presupuesto preventivo de SQLite/WAL | 1 GiB |
-| Espacio libre reservado antes de guardar | 512 MiB |
+SQLite utiliza un límite de páginas y diario de rollback. Se reserva espacio para que una transacción pueda deshacerse tras un fallo de alimentación: la base dispone de aproximadamente 960 MB y el resto del máximo queda como reserva del diario y su sobrecarga. No significa que esos 2 GB estén ocupados permanentemente. Si una base anterior ya supera el presupuesto de migración, el arranque se detiene conservándola; respalda y revisa su compactación antes de reintentar. No se hace una copia o VACUUM de tamaño ilimitado durante el arranque.
 
-Son límites, no mediciones del consumo ni garantías de recepción para cualquier volumen. El presupuesto de eventos es una comprobación previa a cada lote, no una cuota exacta del sistema de archivos; SQLite y sus índices pueden añadir sobrecarga. El límite de datos no incluye imágenes Docker, respaldos ni otros servicios.
+Al alcanzar el límite de la base se eliminan los eventos pendientes más antiguos y se continúa capturando. Esta política puede perder eventos todavía no entregados durante una desconexión prolongada; fue elegida expresamente para priorizar la captura nueva. El contador **Descartados sin enviar** persiste entre reinicios. No se eliminan cámaras, configuración ni llaves. Si todo el disco se queda sin la reserva de 512 MiB, o un solo lote no cabe, se detiene esa escritura y se informa del problema.
 
-El panel muestra espacio utilizado y disponible. Cuando un lote excedería el presupuesto o la reserva de espacio, se rechaza su escritura, se conserva el historial y la entrada HTTP responde 503. Los trabajadores ONVIF/RTSP mantienen el lote pendiente y reintentan; no prometen conservar mensajes que la cámara produzca mientras están bloqueados. No hay eliminación automática por antigüedad.
+Los límites de recursos siguen siendo 0.50 CPU (medio núcleo), 384 MiB de RAM sin swap adicional, 128 procesos y tres archivos de log de Docker de 5 MB. Son límites de ejecución, no una medida de consumo real. El panel muestra espacio ocupado y cola de entrega.
 
-Si hace falta ajustar el presupuesto, edita como administrador `/opt/vsaas-gateway/eventos/.env` y cambia `COLLECTOR_MAX_DATA_MB`; los recursos de CPU/memoria están en `compose.yaml` del mismo directorio. Conserva los límites compatibles con el Gateway principal y aplica una ventana de mantenimiento:
+### Configurar el destino JSON
 
-```bash
-sudo systemctl restart vsaas-eventos
-sudo vsaas-eventos estado
+En el panel del colector aparece **Envío de eventos JSON**. Con una llave administrativa configura:
+
+- Protocolo HTTP o HTTPS; HTTPS verifica el certificado.
+- IP IPv4 o host, sin protocolo, puerto ni credenciales dentro del campo.
+- Puerto y path que comienza con `/`.
+- Token Bearer opcional; se guarda cifrado y no se devuelve en la API. Dejarlo vacío conserva el existente solo si no cambian protocolo, host o puerto; al cambiar de servidor no se reenvía automáticamente la credencial del anterior. La casilla correspondiente lo elimina.
+- Activar o desactivar el envío automático. Se entrega desactivado hasta que el administrador lo configure.
+
+Guarda primero el destino y pulsa **Probar destino guardado**. Se envía un JSON identificado con `test: true`, sin retirar eventos reales de la cola. El receptor debe aceptar POST con `Content-Type: application/json`. No se usa ngrok, proxy de entorno ni seguimiento de redirecciones. Si configuras un host externo, los eventos saldrán hacia él; no permanecen exclusivamente locales una vez activado el envío.
+
+Cada evento se envía individualmente, por un trabajador secuencial. Valida que la tasa de recepción del servidor supere la de generación; si la cola crece sostenidamente, puede alcanzar el límite aun con el destino disponible. El formato es:
+
+```json
+{
+  "event_id": "identificador-del-colector:123",
+  "type": "camera_event",
+  "event": {
+    "id": 123,
+    "camera_id": "identificador-de-camara",
+    "received_at": "2026-01-01T00:00:00Z",
+    "source_time": null,
+    "topic": "Motion",
+    "transport": "onvif",
+    "metadata": {"example": true},
+    "content_type": "application/soap+xml"
+  }
+}
 ```
+
+No se incluyen las contraseñas de cámaras ni `raw_base64`. Sí se envían los metadatos originales interpretados, que pueden contener XML y atributos del fabricante. El receptor responde HTTP 2xx para confirmar aceptación; después se elimina el evento local. Un 2xx acredita aceptación HTTP, no procesamiento completo por el sistema remoto.
+
+Ante fallo de conexión, TLS o respuesta no 2xx, se conserva el evento y se reintenta con espera progresiva hasta 60 segundos. La cola y el destino se conservan al reiniciar. El envío es **al menos una vez**: si el receptor guardó el evento pero la respuesta se perdió, puede recibirlo otra vez. Debe deduplicar usando `event_id`, enviado también como encabezado `Idempotency-Key`. Los pendientes siguen sujetos al descarte por capacidad. Cambiar de destino afecta a toda la cola pendiente; los eventos ya confirmados no se vuelven a enviar al destino nuevo.
+
+La API usa `GET /api/forwarding` para estado, `PUT /api/forwarding` para configurar y `POST /api/forwarding/test` para probar. Solo administración modifica o prueba; una llave de consulta ve el estado sin el token. Cerrar el navegador no detiene el envío. En el panel se muestran pendientes, entregados, descartados y el último resultado.
 
 ## 11. Detener, reiniciar y revisar logs
 

@@ -140,3 +140,16 @@ test('NVR metadata frames show object attributes and frame XML in the detail pan
   assert.match(app.get('#detail-xml').textContent,/ObjectId="7"/);
   assert.equal(app.get('#xml-section').hidden,false);
 });
+
+test('forwarding form sends configured JSON destination and clears bearer input',async()=>{
+  const app=setup([]);let saved;
+  app.setFetch(async(url,options)=>({ok:true,json:async()=>{
+    if(url==='/api/status')return {events:0,access_role:'admin',cameras:[]};
+    if(url==='/api/forwarding'){if(options?.method==='PUT')saved=JSON.parse(options.body);return {enabled:false,pending:0,sent:0,dropped:0};}
+    return [];
+  }}));
+  await app.get('#connect').onclick();
+  app.get('#forward-scheme').value='https';app.get('#forward-host').value='receiver.example.invalid';app.get('#forward-port').value='9443';app.get('#forward-path').value='/ingest/events';app.get('#forward-token').value='synthetic-bearer';app.get('#forward-enabled').checked=true;
+  await app.get('#forwarding-form').onsubmit({preventDefault(){}});
+  assert.equal(saved.host,'receiver.example.invalid');assert.equal(saved.port,9443);assert.equal(saved.path,'/ingest/events');assert.equal(saved.enabled,true);assert.equal(app.get('#forward-token').value,'');
+});

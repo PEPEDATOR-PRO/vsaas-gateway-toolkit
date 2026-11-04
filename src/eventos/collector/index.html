@@ -3,7 +3,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Colector · Cámaras</title>
 <link rel="stylesheet" href="/assets/panel.css">
-<script src="/assets/panel.js?v=0.4.0" defer></script>
+<script src="/assets/panel.js?v=0.5.0" defer></script>
 </head><body>
 <header><h1>Colector de eventos</h1><p class="muted">Recibe los eventos de tus cámaras y explora sus metadatos.</p></header>
 <section id="monitor" aria-labelledby="monitor-title">
@@ -17,7 +17,7 @@
 <div class="event-column"><div class="column-heading"><h3>Eventos recibidos</h3><span id="visible-count" class="muted">0 visibles</span></div>
 <p class="muted compact">Los más nuevos aparecen arriba. Selecciona un evento para ver su detalle.</p>
 <div id="events" class="event-list" aria-label="Lista de eventos"><p class="empty">Conecta tu acceso para comenzar.</p></div>
-<button id="older" class="secondary" disabled>Cargar anteriores</button><p class="muted compact">La vista conserva hasta 500 eventos. Todos permanecen guardados en el historial.</p></div>
+<button id="older" class="secondary" disabled>Cargar anteriores</button><p class="muted compact">La vista conserva hasta 500 eventos. La cola local está sujeta al envío y al límite de almacenamiento.</p></div>
 <div class="detail-column" aria-labelledby="detail-title">
 <div class="column-heading"><h3 id="detail-title">Detalle del evento</h3><button id="download-simple" class="secondary" hidden>Descargar JSON simple</button><button id="download" class="secondary" hidden>Descargar original completo</button></div>
 <p id="detail-empty" class="empty">Selecciona un evento de la izquierda.</p>
@@ -25,7 +25,7 @@
 <details id="xml-section" hidden><summary>Ver XML de los metadatos</summary><pre id="detail-xml" tabindex="0"></pre></details></div>
 </div></div>
 <p id="feed-error" role="alert" hidden></p>
-<p class="muted compact">Pausar congela esta vista. El colector sigue recibiendo y guardando eventos. Al reanudar se incorporan los pendientes.</p>
+<p class="muted compact">Pausar congela esta vista. El colector sigue recibiendo y enviando eventos según su configuración. Al reanudar se incorporan los pendientes.</p>
 </section>
 <section><h2>Acceso al colector</h2><label>Llave de acceso (administración o consulta)<input id="token" type="password" autocomplete="off"></label><p><button id="connect">Conectar</button> <span id="total"></span></p><p id="access-note" class="muted compact">Usa tu llave de administración o la llave de consulta que te compartieron.</p><p id="storage-status" class="muted compact" role="status"></p></section>
 <section><h2>Cámaras</h2><div class="scroll"><table><thead><tr><th>Nombre</th><th>Modo</th><th>Estado</th><th>Última conexión</th><th></th></tr></thead><tbody id="cameras"></tbody></table></div></section>
@@ -37,4 +37,6 @@
 <label>Usuario ONVIF<input name="username" autocomplete="off"></label><label>Contraseña ONVIF<input name="password" type="password" autocomplete="new-password"></label>
 <label id="certificate-field" hidden>Certificado HTTPS<select name="verify_tls" disabled><option value="true">Verificar certificado</option><option value="false">Aceptar certificado propio</option></select></label>
 <button>Guardar y conectar</button></form><p><small>Activa ONVIF y sus permisos de eventos en la cámara. En modo HTTP recibirás una URL y un token al guardar.</small></p><pre id="message" role="status"></pre></section>
+<section id="forwarding-panel"><h2>Envío de eventos JSON</h2><p>POST directo al destino guardado, sin ngrok. Los eventos confirmados con HTTP 2xx se retiran de la cola local. Si se llena el espacio, se descartan los pendientes más antiguos.</p><p id="forwarding-status" role="status">Conecta tu acceso para consultar el envío.</p>
+<form id="forwarding-form" hidden><label>Protocolo<select id="forward-scheme"><option value="https">HTTPS</option><option value="http">HTTP</option></select></label><label>IP o host<input id="forward-host" placeholder="receptor.ejemplo.com" required autocomplete="off"></label><label>Puerto<input id="forward-port" type="number" value="443" min="1" max="65535" required></label><label>Path<input id="forward-path" value="/events" required></label><label>Token Bearer opcional<input id="forward-token" type="password" autocomplete="new-password" placeholder="Vacío conserva el token solo para el mismo host y puerto"></label><label><input id="forward-clear-token" type="checkbox">Eliminar token guardado</label><label><input id="forward-enabled" type="checkbox">Activar envío automático al destino guardado</label><button>Guardar configuración</button><button id="forward-test" type="button" class="secondary">Probar destino guardado</button><p id="forwarding-message" role="status"></p></form></section>
 </body></html>

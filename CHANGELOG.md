@@ -1,5 +1,12 @@
 # Cambios
 
+## 0.5.0 — 2026-11-04
+
+- Cola de envío JSON configurable por host, puerto, path y HTTP/HTTPS, con token opcional cifrado, prueba y reintentos persistentes.
+- Máximo local de 2 GB incluyendo reserva del diario SQLite; descarte de pendientes más antiguos al alcanzar capacidad y contador persistente de descartes.
+- Identificador estable de entrega para deduplicación del receptor; eventos confirmados por HTTP 2xx se retiran de la cola.
+
+
 ## 0.4.0 — 2026-11-04
 
 - Colector de eventos de cámaras importado como módulo opcional `eventos`, sin datos, catálogos, credenciales ni eventos reales del proyecto original.
