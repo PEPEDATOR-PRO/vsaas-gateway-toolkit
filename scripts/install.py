@@ -32,6 +32,16 @@ def main():
     args=parser.parse_args()
     if args.interactive and args.module!='vpn':parser.error('--interactive solo se utiliza con vpn')
     if args.events_ip and args.module!='eventos':parser.error('--events-ip solo se utiliza con eventos')
+    if args.module=='resumen':
+        if args.dry_run:
+            print('Simulación: actualizar recursos y tarjeta de Vista global. No requiere perfil ni modifica la VPN.')
+            return
+        if getattr(os,'geteuid',lambda:-1)()!=0:raise SystemExit('Ejecuta con sudo en Ubuntu.')
+        if not sys.platform.startswith('linux'):raise SystemExit('La instalación debe ejecutarse en Ubuntu Linux.')
+        subprocess.run([sys.executable,str(ROOT/'tools/build.py')],check=True)
+        subprocess.run(['bash',str(ROOT/'dist/instalar-resumen-general.sh')],check=True)
+        print('Vista global actualizada. Cierra la sesión de Cockpit y vuelve a entrar.')
+        return
     if args.module=='eventos':
         if args.dry_run:
             print('Simulación: colector opcional en Docker, puerto VPN 8081, volumen propio y acceso desde Cockpit. No se ejecutó Docker ni se cambió la VPN.')
