@@ -280,10 +280,11 @@ El panel prepara el comando; no puede ejecutarlo por ti en Windows. El servidor 
 sudo python3 scripts/install.py resumen
 ```
 
-Este módulo actualiza también los archivos de los paneles y reaplica la adaptación de Vista global. No basta con ejecutar una copia antigua de `install-overview-overlay.py`: eso conservaría los recursos anteriores.
+Este módulo actualiza también los archivos de los paneles y reaplica la adaptación de Vista global. Se puede ejecutar sin `config/equipo.json`; no solicita un perfil ni modifica la configuración de la VPN. No basta con ejecutar una copia antigua de `install-overview-overlay.py`: eso conservaría los recursos anteriores.
 
 Cierra sesión en Cockpit y vuelve a entrar. En **Vista global** deben verse:
 
+- **Información de red**, con selector Ethernet/Wi-Fi y botón **Actualizar red**: MAC, IPv4/prefijo, segmento CIDR, gateway, máscara de subred y asignación DHCP/estática. Si el método no se puede verificar, muestra **Sin confirmar**. La consulta es manual y no modifica las interfaces.
 - **Salud Vsaas**, con estado local, cámaras y VPN; pulsa Actualizar resumen.
 - **Tráfico de red**, con interfaz seleccionable, botón Iniciar/Detener, fondo, cuadrícula, áreas de recepción/envío y escala en Mb/s.
 

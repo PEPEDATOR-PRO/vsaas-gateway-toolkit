@@ -121,3 +121,6 @@ La tarjeta **Información de red** permite seleccionar Ethernet o Wi-Fi y pulsar
 La asignación IPv4 muestra DHCP cuando hay evidencia en las direcciones/rutas del sistema, o DHCP/Estática según la conexión activa de NetworkManager si está disponible. **Sin confirmar** significa que no se pudo verificar el método; no equivale a IP fija. Una interfaz sin ruta predeterminada lo indica expresamente.
 
 Para actualizar esta tarjeta en un equipo existente: `git pull --ff-only` y `sudo python3 scripts/install.py resumen`. Cierra la sesión de Cockpit y vuelve a entrar.
+
+
+El módulo `resumen` puede actualizarse sin `config/equipo.json`: no lee ni sobrescribe el perfil del equipo y no modifica la configuración de la VPN. Si aparece un error indicando que falta ese archivo al actualizar Vista global, ejecuta `git pull --ff-only` y vuelve a ejecutar `sudo python3 scripts/install.py resumen`.

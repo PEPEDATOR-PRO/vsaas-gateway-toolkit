@@ -86,3 +86,6 @@ Registra el resultado de estas pruebas en el inventario interno del equipo, sepa
 La receta conserva IKEv1 agresivo con PSK; fase 1 AES-256/SHA-256/DH 5 y fase 2 AES-256/SHA-1/PFS DH 5. Solo sirve para un FortiGate configurado con parámetros equivalentes. No convierte automáticamente otros perfiles VPN ni modifica el FortiGate.
 
 El instalador guarda respaldos de los archivos que sustituye. Para reconfigurar un equipo ya usado, revisa también si queda una dirección anterior en `lo`; no reutilices una identidad activa de otro Gateway.
+
+
+El módulo `resumen` puede actualizarse sin `config/equipo.json`: no lee ni sobrescribe el perfil del equipo y no modifica la configuración de la VPN. Si aparece un error indicando que falta ese archivo al actualizar Vista global, ejecuta `git pull --ff-only` y vuelve a ejecutar `sudo python3 scripts/install.py resumen`.
