@@ -23,7 +23,7 @@ def execute(args, timeout=10):
                           timeout=timeout, env={**os.environ, 'LC_ALL': 'C'})
 
 
-def interfaces():
+def interfaces(details=False):
     ip_tool = shutil.which('ip') or '/usr/sbin/ip'
     data = json.loads(execute([ip_tool, '-j', '-4', 'addr', 'show', 'up']).stdout)
     found = []
@@ -41,8 +41,37 @@ def interfaces():
         addresses = [f"{a['local']}/{a['prefixlen']}" for a in net.get('addr_info', [])
                      if a.get('family') == 'inet' and a.get('scope') == 'global']
         if addresses:
-            found.append({'name': name, 'addresses': addresses})
+            item = {'name': name, 'addresses': addresses}
+            if details:
+                item['mac'] = net.get('address', '')
+                item['ipv4'] = [dict(ip=str(ipaddress.ip_interface(a).ip),
+                                     segment=str(ipaddress.ip_interface(a).network),
+                                     mask=str(ipaddress.ip_interface(a).netmask)) for a in addresses]
+                item['method'] = 'DHCP' if any(a.get('dynamic') for a in net.get('addr_info', []) if a.get('family') == 'inet') else 'Sin confirmar'
+            found.append(item)
     return found
+
+
+def network_info():
+    nets = interfaces(details=True)
+    ip_tool = shutil.which('ip') or '/usr/sbin/ip'
+    routes = json.loads(execute([ip_tool, '-j', '-4', 'route', 'show', 'table', 'main']).stdout)
+    for net in nets:
+        defaults = sorted((r for r in routes if r.get('dev') == net['name'] and r.get('dst') == 'default'), key=lambda r: r.get('metric', 0))
+        net['gateway'] = defaults[0].get('gateway', '') if defaults else ''
+        if any(r.get('dev') == net['name'] and r.get('protocol') == 'dhcp' for r in routes):
+            net['method'] = 'DHCP'
+        # NetworkManager is optional: networkd systems still report DHCP through iproute2.
+        nmcli = shutil.which('nmcli')
+        if nmcli:
+            try:
+                connection = execute([nmcli, '-g', 'GENERAL.CON-UUID', 'device', 'show', net['name']], timeout=3).stdout.strip()
+                if re.fullmatch(r'[0-9a-fA-F-]{36}', connection):
+                    method = execute([nmcli, '-g', 'ipv4.method', 'connection', 'show', connection], timeout=3).stdout.strip()
+                    net['method'] = {'auto': 'DHCP', 'manual': 'Estática'}.get(method, net['method'])
+            except (OSError, subprocess.SubprocessError):
+                pass
+    return {'interfaces': nets}
 
 
 def get_interface(name):
@@ -230,6 +259,8 @@ def web_tunnel(name,address,data):
 
 
 def main(argv):
+    if argv == ['network-info']:
+        return network_info()
     if argv == ['interfaces']:
         return {'interfaces': interfaces()}
     if os.geteuid() != 0:

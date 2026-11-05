@@ -30,7 +30,35 @@
     const times=make("div",undefined,"vsaas-chart-times");for(const label of ["−60 s","−30 s","Ahora"])times.append(make("span",label));chart.append(times);traffic.append(chart);
     const network=make("div",undefined,"vsaas-network-controls");const select=document.createElement("select");select.id="vsaas-interface";select.setAttribute("aria-label","Puerto de red del resumen");select.disabled=true;network.append(select,button("Iniciar","vsaas-traffic-toggle",()=>state.process?stopTraffic():startTraffic()),detailButton("Ver gráfica","/gateway_scanner/traffic"));traffic.append(network);
     const trafficStatus=make("p","Monitor apagado · una muestra por segundo al activarlo","vsaas-card-status");trafficStatus.id="vsaas-traffic-status";trafficStatus.setAttribute("role","status");traffic.append(trafficStatus);
-    return[health,traffic];
+    const info=make("section",undefined,"vsaas-summary-card");info.id="vsaas-overview-network";
+    info.append(make("h2","Información de red"));
+    const controls=make("div",undefined,"vsaas-network-controls"),ports=make("select");ports.id="vsaas-network-port";ports.setAttribute("aria-label","Interfaz de información de red");ports.addEventListener("change",renderNetwork);
+    controls.append(ports,button("Actualizar red","vsaas-network-refresh",refreshNetwork));info.append(controls);
+    for(const [key,label] of [["mac","Dirección MAC"],["addresses","Dirección IPv4 / prefijo"],["segment","Segmento de red"],["gateway","Puerta de enlace"],["mask","Máscara de subred"],["method","Asignación IPv4"]])valueRow(info,label,"vsaas-net-"+key);
+    const note=make("p","Pulsa Actualizar red para consultar. Sin monitoreo continuo.","vsaas-card-status");note.id="vsaas-network-status";note.setAttribute("role","status");info.append(note);
+    return[health,traffic,info];
+  }
+  let networkData=[];
+  function renderNetwork(){
+    const net=networkData.find(n=>n.name===by("vsaas-network-port").value);
+    for(const key of ["mac","addresses","segment","gateway","mask","method"]){
+      const value=!net?"—":key==="addresses"?net.addresses.join(", "):key==="segment"||key==="mask"?net.ipv4.map(a=>a[key]).join(", "):net[key];
+      by("vsaas-net-"+key).textContent=value||(key==="gateway"?"Sin ruta predeterminada":"Sin confirmar");
+    }
+  }
+  async function refreshNetwork(){
+    const btn=by("vsaas-network-refresh");if(btn.disabled)return;btn.disabled=true;
+    by("vsaas-network-status").textContent="Consultando interfaces locales…";
+    try{
+      const output=await cockpit.spawn(["/usr/bin/python3","/usr/local/libexec/gateway-scanner.py","network-info"],{err:"message"});
+      networkData=JSON.parse(output).interfaces;
+      const select=by("vsaas-network-port"),previous=select.value;select.replaceChildren();
+      for(const net of networkData){const option=make("option",net.name);option.value=net.name;select.append(option);}
+      if(networkData.some(n=>n.name===previous))select.value=previous;else if(networkData.some(n=>n.name==="eth0"))select.value="eth0";
+      select.disabled=!networkData.length;renderNetwork();
+      by("vsaas-network-status").textContent=networkData.length?"Consulta: "+new Date().toLocaleTimeString("es-MX")+" · Sin confirmar indica que no se pudo verificar el método de asignación.":"Sin interfaces locales activas con IPv4.";
+    }catch(err){by("vsaas-network-status").textContent="No se pudo actualizar la información de red. "+(err.message||String(err));}
+    finally{btn.disabled=false;}
   }
   async function refreshHealth(){
     if(state.healthBusy)return;state.healthBusy=true;by("vsaas-health-refresh").disabled=true;

@@ -12,6 +12,29 @@ NET = {'name': 'eth0', 'addresses': ['192.168.1.10/24']}
 
 
 class ScannerTests(unittest.TestCase):
+    def test_network_info_routes_and_masks(self):
+        import json
+        values = [{'ifname': 'eth0', 'flags': ['BROADCAST'], 'address': '02:00:00:00:00:01',
+                   'addr_info': [{'family': 'inet', 'scope': 'global', 'local': '192.0.2.10', 'prefixlen': 29}]}]
+        routes = [{'dst': 'default', 'dev': 'eth0', 'gateway': '192.0.2.9', 'metric': 100, 'protocol': 'dhcp'}]
+        with patch.object(scanner.shutil, 'which', return_value=None), patch.object(scanner, 'execute', side_effect=[subprocess.CompletedProcess([], 0, json.dumps(values), ''), subprocess.CompletedProcess([], 0, json.dumps(routes), '')]):
+            net = scanner.main(['network-info'])['interfaces'][0]
+        self.assertEqual(net['ipv4'][0]['segment'], '192.0.2.8/29')
+        self.assertEqual(net['ipv4'][0]['mask'], '255.255.255.248')
+        self.assertEqual(net['gateway'], '192.0.2.9')
+        self.assertEqual(net['method'], 'DHCP')
+
+    def test_missing_dhcp_evidence_is_not_static(self):
+        with patch.object(scanner, 'interfaces', return_value=[{'name': 'eth0', 'method': 'Sin confirmar'}]), patch.object(scanner.shutil, 'which', return_value=None), patch.object(scanner, 'execute', return_value=subprocess.CompletedProcess([], 0, '[]', '')):
+            net = scanner.network_info()['interfaces'][0]
+        self.assertEqual(net['method'], 'Sin confirmar')
+        self.assertEqual(net['gateway'], '')
+
+    def test_networkmanager_manual_configuration(self):
+        results = [subprocess.CompletedProcess([], 0, value, '') for value in ['[]', '00000000-0000-0000-0000-000000000000', 'manual']]
+        with patch.object(scanner, 'interfaces', return_value=[{'name': 'eth0', 'method': 'Sin confirmar'}]), patch.object(scanner.shutil, 'which', side_effect=lambda name: '/usr/bin/' + name), patch.object(scanner, 'execute', side_effect=results):
+            self.assertEqual(scanner.network_info()['interfaces'][0]['method'], 'Estática')
+
     def test_discovery_deduplicates_and_sorts_numerically(self):
         text = '''Interface: eth0
 192.168.1.100 aa:bb:cc:dd:ee:ff (Unknown)

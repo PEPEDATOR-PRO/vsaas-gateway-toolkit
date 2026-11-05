@@ -1,5 +1,9 @@
 # Cambios
 
+## 0.5.1 — 2026-11-05
+
+- Tarjeta Información de red en Vista global: interfaz, MAC, IPv4/prefijo, segmento, gateway, máscara y método DHCP/estático cuando puede verificarse. Consulta manual sin sondeo continuo.
+
 ## 0.5.0 — 2026-11-04
 
 - Cola de envío JSON configurable por host, puerto, path y HTTP/HTTPS, con token opcional cifrado, prueba y reintentos persistentes.

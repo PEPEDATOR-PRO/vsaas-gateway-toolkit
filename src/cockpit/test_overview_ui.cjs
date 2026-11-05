@@ -2,6 +2,7 @@ const fs=require('node:fs'),path=require('node:path'),http=require('node:http'),
 const{chromium}=require('playwright');
 const mock=`window.trafficStarts=0;window.healthQueries=0;window.closedReaders=0;window.jumped=null;const listeners=[];
 window.cockpit={hidden:false,addEventListener:(event,fn)=>listeners.push(fn),jump:path=>window.jumped=path,setHidden(value){this.hidden=value;listeners.forEach(fn=>fn());},spawn(args,options){
+ if(args.includes('network-info'))return Promise.resolve(JSON.stringify({interfaces:[{name:'eth0',mac:'02:00:00:00:00:01',addresses:['192.0.2.10/24'],ipv4:[{ip:'192.0.2.10',segment:'192.0.2.0/24',mask:'255.255.255.0'}],gateway:'192.0.2.1',method:'DHCP'},{name:'wlan0',mac:'02:00:00:00:00:02',addresses:['198.51.100.10/24'],ipv4:[{segment:'198.51.100.0/24',mask:'255.255.255.0'}],gateway:'',method:'Sin confirmar'}]}));
  if(args.includes('interfaces'))return Promise.resolve(JSON.stringify({interfaces:[{name:'eth0',addresses:['192.168.1.10/24']}]}));
  if(args.includes('/usr/local/libexec/vxg-health.py')){window.healthQueries++;return Promise.resolve(JSON.stringify({vpn:{status:'critical'},local_status:'ok',checked_at:new Date().toISOString(),containers:[{service:'app',state:'running',health:'healthy'}],web:{valid:true,latency_ms:8},internal:{database:{camera_total:0,camera_enabled:0}}}));}
  window.trafficStarts++;let reject,timer,i=0,rx=0,tx=0;const p=new Promise((resolve,r)=>reject=r);
@@ -22,8 +23,14 @@ const server=http.createServer((req,res)=>{
  try{
   const page=await browser.newPage({viewport:{width:1600,height:1000},colorScheme:'dark'});const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto('http://127.0.0.1:'+server.address().port+'/system/index.html');await page.waitForFunction(()=>!document.querySelector('#vsaas-interface').disabled);
-  assert.equal(await page.locator('.native').count(),4);assert.equal(await page.locator('.vsaas-summary-card').count(),2);
+  assert.equal(await page.locator('.native').count(),4);assert.equal(await page.locator('.vsaas-summary-card').count(),3);
   assert.equal(await page.evaluate(()=>trafficStarts),0);assert.equal(await page.evaluate(()=>healthQueries),0);
+  await page.click('#vsaas-network-refresh');await page.waitForFunction(()=>document.querySelector('#vsaas-net-method').textContent==='DHCP');
+  assert.equal(await page.locator('#vsaas-net-mac').textContent(),'02:00:00:00:00:01');
+  assert.equal(await page.locator('#vsaas-net-segment').textContent(),'192.0.2.0/24');
+  assert.equal(await page.locator('#vsaas-net-gateway').textContent(),'192.0.2.1');
+  assert.equal(await page.locator('#vsaas-net-mask').textContent(),'255.255.255.0');
+  await page.selectOption('#vsaas-network-port','wlan0');assert.equal(await page.locator('#vsaas-net-method').textContent(),'Sin confirmar');
   await page.click('#vsaas-health-refresh');await page.waitForFunction(()=>!document.querySelector('#vsaas-health-refresh').disabled);
   assert.equal(await page.locator('#vsaas-app').textContent(),'En ejecución');
   assert.equal(await page.locator('#vsaas-vpn').textContent(),'Desconectada');
@@ -36,7 +43,7 @@ const server=http.createServer((req,res)=>{
   await page.screenshot({path:path.join(__dirname,'revision','overview-desktop.png'),fullPage:true});
   await page.click('#vsaas-traffic-toggle');const frozen=await page.locator('#vsaas-rx').textContent();await page.waitForTimeout(50);assert.equal(await page.locator('#vsaas-rx').textContent(),frozen);
   await page.evaluate(()=>document.querySelector('#vsaas-overview-health').remove());await page.waitForFunction(()=>document.querySelector('#vsaas-overview-health'));
-  assert.equal(await page.locator('.vsaas-summary-card').count(),2);assert.equal(await page.locator('.native').count(),4);
+  assert.equal(await page.locator('.vsaas-summary-card').count(),3);assert.equal(await page.locator('.native').count(),4);
   await page.click('#vsaas-traffic-toggle');await page.evaluate(()=>cockpit.setHidden(true));assert.equal(await page.locator('#vsaas-traffic-badge').textContent(),'Detenido');assert.equal(await page.evaluate(()=>closedReaders),2);
   await page.evaluate(()=>cockpit.setHidden(false));assert.equal(await page.evaluate(()=>trafficStarts),2);
   await page.setViewportSize({width:430,height:960});await page.screenshot({path:path.join(__dirname,'revision','overview-mobile.png'),fullPage:true});

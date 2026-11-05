@@ -112,3 +112,12 @@ FortiGate debe permitir TCP 22 desde tu VPN hasta el Gateway y el servidor SSH d
 Las pruebas se limitan a la red local seleccionada, excluyen el propio Gateway, no siguen redirecciones HTTP y no desactivan la validación TLS. Las credenciales se envían por la entrada estándar del proceso, nunca en argumentos ni archivos, y no se incluyen en resultados, CSV ni diagnóstico de salud. La contraseña se borra del formulario al enviar o cerrar. Cerrar el panel o salir cancela la prueba; no se crea un servicio permanente. Los archivos de claves de la VPN no se consultan. HTTP Basic sobre HTTP puede enviar credenciales sin cifrado en el tramo local hacia la cámara. No repitas intentos con datos incorrectos porque la cámara puede bloquear la cuenta.
 
 Referencias del protocolo: [ONVIF Security Configuration](https://onvif.org/specs/srv/security/ONVIF-Security-Service-Spec.pdf), [entrada de procesos en Cockpit](https://cockpit-project.org/guide/latest/cockpit-spawn.html) y [reenvío local OpenSSH](https://man.openbsd.org/ssh#L).
+
+
+## Información de red en Vista global
+
+La tarjeta **Información de red** permite seleccionar Ethernet o Wi-Fi y pulsar **Actualizar red**. Muestra MAC, IPv4/prefijo, segmento CIDR, puerta de enlace predeterminada de esa interfaz y máscara. No modifica la red ni mantiene consultas en segundo plano. Si existen varias direcciones, se muestran sus segmentos y máscaras en el mismo orden.
+
+La asignación IPv4 muestra DHCP cuando hay evidencia en las direcciones/rutas del sistema, o DHCP/Estática según la conexión activa de NetworkManager si está disponible. **Sin confirmar** significa que no se pudo verificar el método; no equivale a IP fija. Una interfaz sin ruta predeterminada lo indica expresamente.
+
+Para actualizar esta tarjeta en un equipo existente: `git pull --ff-only` y `sudo python3 scripts/install.py resumen`. Cierra la sesión de Cockpit y vuelve a entrar.
