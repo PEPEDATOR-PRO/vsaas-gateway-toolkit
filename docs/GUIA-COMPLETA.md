@@ -386,6 +386,25 @@ Cierra sesión en Cockpit y vuelve a entrar. El módulo `resumen` ya incluye la 
 
 No ejecutes `todo` para una actualización visual: también aplica VPN, SSH y Cockpit. No repitas `vxg` sobre un Gateway en uso. No reinstales el recolector durante una sesión que deseas conservar; exporta y revisa primero el estado.
 
+### Actualizar solo el colector y agregar la consulta de capacidades
+
+Si el colector ya está instalado, ejecuta en **Ubuntu del Gateway**:
+
+```bash
+cd ~/vsaas-gateway-toolkit
+git status --short
+git pull --ff-only
+sudo python3 scripts/install.py eventos
+sudo vsaas-eventos estado
+sudo systemctl status vsaas-eventos --no-pager -l
+```
+
+Si Git informa cambios locales o falla la descarga, revisa ese aviso antes de continuar; conserva tus cambios. El instalador reconstruye la imagen y actualiza solo el colector, conservando el volumen de cámaras, llaves y eventos pendientes. La captura se interrumpe brevemente al sustituir el contenedor. Descargar el repositorio o reiniciar el servicio sin reconstruir la imagen no incorpora el código nuevo.
+
+Recarga el panel con **Ctrl+F5**, conecta con tu llave administrativa y pulsa **Consultar capacidades** en la fila de una cámara guardada. El informe presenta un resumen, eventos y propiedades anunciados, campos realmente recibidos y respuestas XML de las consultas, con descarga JSON. En cámaras HTTP resume las muestras recibidas; la inspección activa genérica utiliza ONVIF y depende del modelo y sus permisos.
+
+Si necesitas recuperar tu llave: `sudo vsaas-eventos llave`. Si el servicio no responde: `sudo vsaas-eventos logs`. Consulta [el procedimiento y alcance del informe](COLECTOR-EVENTOS.md#12-actualizar-únicamente-esta-herramienta). Esta actualización no requiere reinstalar VXG, VPN ni los demás módulos.
+
 ## 21. Solución rápida de problemas
 
 | Síntoma | Comprobación |
@@ -412,6 +431,8 @@ sudo vsaas-eventos estado
 ```
 
 Cierra sesión en Cockpit y vuelve a entrar: **Herramientas → Colector de eventos**. La entrada permite consultar el estado y abrir su panel por la IP VPN, puerto 8081. Obtén la llave local con `sudo vsaas-eventos llave`. Cada cámara se agrega expresamente en el panel; no se copian las credenciales del Gateway Vsaas. Revisa los límites de almacenamiento y las instrucciones de [Colector de eventos](COLECTOR-EVENTOS.md) antes de activar metadatos continuos. Este módulo no se instala con `todo`.
+
+Después de guardar una cámara aparece **Consultar capacidades** para el administrador. Permite revisar las propiedades anunciadas, las observadas en la cola y el resultado de cada consulta. La descarga del informe se hace bajo demanda y no modifica las reglas de la cámara.
 
 | Módulo | Instalación / propósito |
 | --- | --- |

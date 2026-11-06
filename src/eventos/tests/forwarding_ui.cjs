@@ -12,7 +12,8 @@ const server=http.createServer((req,res)=>{
   const page=await browser.newPage({viewport:{width:1280,height:1000},colorScheme:'dark'}),errors=[];page.on('pageerror',e=>errors.push(e.message));let saved=null,viewer=false;
   await page.route('**/api/**',async route=>{
    const url=new URL(route.request().url());let body=[];
-   if(url.pathname==='/api/status')body={events:0,access_role:viewer?'viewer':'admin',cameras:[],storage:{bytes:4096,limit_bytes:2000000000,free_bytes:4000000000}};
+   if(url.pathname==='/api/status')body={events:0,access_role:viewer?'viewer':'admin',cameras:[{id:'synthetic',name:'Entrada',mode:'onvif',device_url:'http://camera.invalid/onvif/device_service',status:'conectada'}],storage:{bytes:4096,limit_bytes:2000000000,free_bytes:4000000000}};
+   if(url.pathname==='/api/cameras/synthetic/capabilities')body={checked_at:'2026-11-06T18:00:00Z',camera_id:'synthetic',device:{Manufacturer:'Ejemplo'},summary:['La cámara anuncia movimiento y objetos.'],event_topics:[{topic:'RuleEngine/Motion',properties:[{group:'Data',name:'State',type:'boolean'}]}],metadata_fields:['Object/Human/Gender'],observed:{sample_count:1,topics:['Motion'],fields:['metadata.State']},limitations:['Lo anunciado no confirma recepción en vivo.'],queries:[{operation:'GetEventProperties',status:'respondió',response:'<script>window.untrusted=true</script>'}]};
    if(url.pathname==='/api/forwarding'){
     if(route.request().method()==='PUT')saved=route.request().postDataJSON();
     body={enabled:saved?.enabled||false,scheme:saved?.scheme,host:saved?.host,port:saved?.port,path:saved?.path,pending:0,sent:12,dropped:3,last_result:'Sin errores'};
@@ -21,11 +22,16 @@ const server=http.createServer((req,res)=>{
    await route.fulfill({json:body});
   });
   await page.goto('http://127.0.0.1:'+server.address().port+'/');await page.fill('#token','synthetic-admin');await page.click('#connect');await page.waitForFunction(()=>!document.querySelector('#forwarding-form').hidden);
+  await page.getByRole('button',{name:'Consultar capacidades'}).click();await page.waitForFunction(()=>!document.querySelector('#capabilities-download').hidden);
+  assert.match(await page.locator('#capabilities-result').textContent(),/RuleEngine\/Motion/);assert.match(await page.locator('#capabilities-result').textContent(),/metadata.State/);assert.equal(await page.evaluate(()=>window.untrusted),undefined);
+  const downloadPromise=page.waitForEvent('download');await page.click('#capabilities-download');assert.equal((await downloadPromise).suggestedFilename(),'capacidades-synthetic.json');
+  await page.setViewportSize({width:430,height:940});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.setViewportSize({width:1280,height:1000});
   await page.selectOption('#forward-scheme','http');await page.fill('#forward-host','receiver.example.invalid');await page.fill('#forward-port','9001');await page.fill('#forward-path','/ingest');await page.fill('#forward-token','synthetic-bearer');await page.check('#forward-enabled');
   await page.locator('#forwarding-form button[type=submit],#forwarding-form button:not([type])').click();await page.waitForFunction(()=>document.querySelector('#forwarding-message').textContent.includes('guardada'));
   assert.equal(saved.port,9001);assert.equal(saved.path,'/ingest');assert.equal(saved.enabled,true);assert.equal(await page.locator('#forward-token').inputValue(),'');assert.match(await page.locator('#forwarding-status').textContent(),/Descartados sin enviar: 3/);
   await page.click('#forward-test');await page.waitForFunction(()=>document.querySelector('#forwarding-message').textContent.includes('204'));
   const revision=path.join(__dirname,'revision');fs.mkdirSync(revision,{recursive:true});await page.screenshot({path:path.join(revision,'forwarding-desktop.png'),fullPage:true});await page.setViewportSize({width:430,height:940});await page.screenshot({path:path.join(revision,'forwarding-mobile.png'),fullPage:true});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-  viewer=true;await page.click('#connect');await page.waitForFunction(()=>document.querySelector('#forwarding-form').hidden);assert.deepEqual(errors,[]);console.log('Forwarding UI OK: destination fields, explicit enable, bearer cleared, test request, delivery counters, viewer and mobile.');
+  await page.click('#capabilities-close');assert.equal(await page.locator('#capabilities-panel').isHidden(),true);
+  viewer=true;await page.click('#connect');await page.waitForFunction(()=>document.querySelector('#forwarding-form').hidden);assert.equal(await page.getByRole('button',{name:'Consultar capacidades'}).count(),0);assert.deepEqual(errors,[]);console.log('Forwarding and capability UI OK: queries, evidence, escaped XML, download, close, viewer, mobile, destination and delivery counters.');
  }finally{await browser.close();server.close();}
 })().catch(e=>{console.error(e);server.close();process.exitCode=1;});

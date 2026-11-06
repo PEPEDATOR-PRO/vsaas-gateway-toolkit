@@ -111,6 +111,23 @@ El panel carga los eventos más recientes, conserva hasta 500 en la vista y perm
 
 Selecciona un evento para ver el JSON simplificado o su XML. Puedes descargar un solo JSON simple, todos los visibles o el cuerpo original completo. Quitar una cámara no borra inmediatamente su cola, que sigue sujeta a envío y retención. Los cuerpos y extensiones del fabricante permanecen en el historial, por lo que las exportaciones pueden incluir datos operativos o personales.
 
+### Consultar capacidades de una cámara
+
+Después de agregar una cámara, con acceso de administración aparece **Consultar capacidades** en su fila. La consulta es bajo demanda y no cambia reglas ni reinicia los lectores de eventos. El informe incluye:
+
+- Resumen del resultado, fabricante, modelo y firmware cuando el equipo los devuelve.
+- Tipos de evento y propiedades que anuncia `GetEventProperties`.
+- Campos potenciales de la muestra `GetSupportedMetadata`, si se admite.
+- Perfiles de medios y, cuando incluyen una configuración analítica, reglas y módulos admitidos de las primeras dos configuraciones.
+- Tipos y campos realmente observados en hasta 100 eventos recientes que sigan en la cola local, con un presupuesto de muestras de 2 MiB; se omiten los eventos que no quepan.
+- Resultado de cada operación y respuesta XML consultable, con credenciales conocidas ocultas. Las respuestas se recortan a 64 KiB en el informe. Los errores muestran el estado o diagnóstico sin publicar el cuerpo de error.
+
+Puedes **Descargar informe JSON**. El informe se genera al consultar; no se guarda como una nueva fuente de eventos ni se envía automáticamente al destino JSON. En cámaras HTTP se resumen las muestras recibidas, sin efectuar consultas ONVIF. Si no quedan muestras por envío o retención, genera una detección y vuelve a consultar.
+
+La API administrativa es `POST /api/cameras/ID/capabilities`. Permite dos consultas simultáneas, una por cámara; una repetida o con el cupo ocupado devuelve HTTP 409. Las operaciones tienen esperas cortas y se dejan de iniciar consultas tras aproximadamente 65 segundos. No se siguen servicios anunciados en otro host ni redirecciones con las credenciales guardadas.
+
+Una capacidad anunciada no demuestra que esté activada o que se haya recibido en vivo. Una operación fallida tampoco demuestra que el equipo carezca de analíticos. La inspección genérica utiliza ONVIF; no descubre automáticamente las API privadas de todos los fabricantes ni garantiza un inventario completo para cualquier modelo.
+
 ## 10. Cola de envío y límite local de 2 GB
 
 El módulo establece `COLLECTOR_MAX_DATA_BYTES=2000000000` y `COLLECTOR_ROLLOVER=1`. Son 2 GB decimales para la base de eventos y su diario SQLite, no 2 GiB. El límite no incluye imágenes Docker, logs de Docker, respaldos ni otros servicios de la Raspberry.
@@ -175,11 +192,27 @@ Para un respaldo consistente, detén la captura en una ventana acordada y respal
 
 ```bash
 cd ~/vsaas-gateway-toolkit
+git status --short
 git pull --ff-only
 sudo python3 scripts/install.py eventos
+sudo vsaas-eventos estado
+sudo systemctl status vsaas-eventos --no-pager -l
 ```
 
 Conserva el proyecto y volumen existentes. La construcción requiere Internet. Si falla antes de actualizar el servicio, el colector anterior no se detiene. El instalador deja un marcador de directorio propio para permitir reintentar una primera construcción incompleta. Un cambio de IP VPN en un despliegue existente necesita revisión deliberada; no se cambia silenciosamente su escucha.
+
+Estos comandos se ejecutan en la terminal **Ubuntu del Gateway**, dentro de la carpeta del repositorio existente. Si `git status --short` muestra cambios propios, revísalos y consérvalos antes de actualizar; no los descartes para forzar la descarga. Si `git pull --ff-only` falla, detente y resuelve ese aviso antes de ejecutar el instalador.
+
+Para incorporar **Consultar capacidades**, es necesario volver a ejecutar el instalador de `eventos`: descargar el código o reiniciar el contenedor por sí solos no reconstruye la imagen. La actualización conserva el volumen con cámaras, credenciales, llaves y eventos todavía en cola. Hay una interrupción breve de la captura al sustituir el contenedor; la construcción se hace antes de reiniciar el servicio.
+
+Después de actualizar:
+
+1. Recarga el panel del colector con **Ctrl+F5**. Si la entrada de Cockpit no aparece, cierra sesión y vuelve a entrar.
+2. Conecta con la llave administrativa existente. Si necesitas consultarla de nuevo, ejecuta `sudo vsaas-eventos llave` en Ubuntu.
+3. En una cámara guardada pulsa **Consultar capacidades**. Espera el informe y revisa **Resumen**, los campos anunciados, los recibidos y las respuestas de las consultas. Puedes descargarlo en JSON.
+4. Genera una detección y confirma que los eventos siguen llegando. Una respuesta a la consulta de capacidades no confirma por sí sola recepción continua.
+
+Si el servicio no responde, consulta `sudo vsaas-eventos logs`. Para esta actualización utiliza únicamente el módulo `eventos`; no necesitas ejecutar `todo`, `vxg`, `vpn`, `paneles` ni `resumen`.
 
 ## 13. Qué probar después de instalar
 

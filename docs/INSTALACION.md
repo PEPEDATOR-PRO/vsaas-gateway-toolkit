@@ -81,6 +81,27 @@ Para instalar por partes, sustituye `todo` por `vpn`, `ssh`, `cockpit` o `panele
 
 Registra el resultado de estas pruebas en el inventario interno del equipo, separado del código.
 
+## Agregar o actualizar el colector de eventos
+
+Con Docker, Compose y la VPN de administración funcionando, ejecuta en **Ubuntu del Gateway**:
+
+```bash
+cd ~/vsaas-gateway-toolkit
+git status --short
+git pull --ff-only
+sudo python3 scripts/install.py eventos
+sudo vsaas-eventos estado
+sudo systemctl status vsaas-eventos --no-pager -l
+```
+
+Revisa los cambios locales que indique Git antes de descargar; si falla `git pull`, resuelve el aviso antes de instalar. En un colector existente, el instalador reconstruye la imagen conservando el volumen con cámaras, llaves y eventos pendientes. La sustitución del contenedor interrumpe brevemente la captura. Reiniciar el servicio sin ejecutar el instalador no incorpora los cambios de código.
+
+Abre **Herramientas → Colector de eventos** en Cockpit, recarga el panel con **Ctrl+F5** y conecta con la llave administrativa existente. Para consultarla en Ubuntu: `sudo vsaas-eventos llave`.
+
+Después de agregar una cámara, **Consultar capacidades** muestra un resumen de sus propiedades anunciadas, los campos realmente recibidos y la respuesta de cada consulta. Permite descargar el informe en JSON. La inspección activa utiliza ONVIF; en conexiones HTTP se describen las muestras recibidas. Las capacidades disponibles dependen del modelo, firmware y permisos.
+
+Comprueba una detección real tras actualizar. Consulta [instalación, operación y actualización del colector](COLECTOR-EVENTOS.md) para los requisitos completos, selección de IP VPN, límites y solución de fallos. Este módulo se instala aparte y no requiere ejecutar `todo` ni reinstalar VXG o VPN.
+
 ## Receta VPN
 
 La receta conserva IKEv1 agresivo con PSK; fase 1 AES-256/SHA-256/DH 5 y fase 2 AES-256/SHA-1/PFS DH 5. Solo sirve para un FortiGate configurado con parámetros equivalentes. No convierte automáticamente otros perfiles VPN ni modifica el FortiGate.

@@ -3,6 +3,7 @@ import hmac
 import json
 import os
 import secrets
+import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Literal
@@ -18,6 +19,7 @@ from .manager import Manager
 from .onvif import parse_events
 from .storage import Store, StorageFull
 from .forwarding import Forwarder
+from .capabilities import inspect_camera
 
 
 class MetadataSource(BaseModel):
@@ -97,6 +99,9 @@ def create_app(data_dir=None):
         raise ValueError('La llave de consulta debe ser distinta de la llave de administración')
     manager = Manager(store)
     forwarder=Forwarder(store)
+    inspection_slots = threading.BoundedSemaphore(2)
+    inspections = set()
+    inspection_lock = threading.Lock()
 
     @asynccontextmanager
     async def lifespan(app):
@@ -178,6 +183,23 @@ def create_app(data_dir=None):
         manager.stop(camera_id)
         store.delete_camera(camera_id)
         return {'deleted': True, 'history_preserved': True}
+
+    @app.post('/api/cameras/{camera_id}/capabilities', dependencies=[Depends(authorize)])
+    def camera_capabilities(camera_id: str):
+        camera = next((c for c in store.cameras(secrets=True) if c['id'] == camera_id), None)
+        if camera is None:
+            raise HTTPException(404, 'Cámara no encontrada')
+        with inspection_lock:
+            if camera_id in inspections or not inspection_slots.acquire(blocking=False):
+                raise HTTPException(409, 'Hay una consulta en curso. Espera a que termine e inténtalo de nuevo.')
+            inspections.add(camera_id)
+        try:
+            samples = store.capability_samples(camera_id)
+            return inspect_camera(camera, samples)
+        finally:
+            with inspection_lock:
+                inspections.discard(camera_id)
+                inspection_slots.release()
 
     @app.put('/api/cameras/{camera_id}/metadata', dependencies=[Depends(authorize)])
     def configure_metadata(camera_id: str, source: MetadataSource):

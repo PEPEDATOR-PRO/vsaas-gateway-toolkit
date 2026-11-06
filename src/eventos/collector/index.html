@@ -3,7 +3,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Colector · Cámaras</title>
 <link rel="stylesheet" href="/assets/panel.css">
-<script src="/assets/panel.js?v=0.5.0" defer></script>
+<script src="/assets/panel.js?v=0.5.2" defer></script>
 </head><body>
 <header><h1>Colector de eventos</h1><p class="muted">Recibe los eventos de tus cámaras y explora sus metadatos.</p></header>
 <section id="monitor" aria-labelledby="monitor-title">
@@ -29,6 +29,11 @@
 </section>
 <section><h2>Acceso al colector</h2><label>Llave de acceso (administración o consulta)<input id="token" type="password" autocomplete="off"></label><p><button id="connect">Conectar</button> <span id="total"></span></p><p id="access-note" class="muted compact">Usa tu llave de administración o la llave de consulta que te compartieron.</p><p id="storage-status" class="muted compact" role="status"></p></section>
 <section><h2>Cámaras</h2><div class="scroll"><table><thead><tr><th>Nombre</th><th>Modo</th><th>Estado</th><th>Última conexión</th><th></th></tr></thead><tbody id="cameras"></tbody></table></div></section>
+<section id="capabilities-panel" hidden aria-labelledby="capabilities-title">
+<div class="column-heading"><h2 id="capabilities-title">Capacidades de la cámara</h2><button id="capabilities-download" hidden>Descargar informe JSON</button><button id="capabilities-close" class="secondary">Cerrar</button></div>
+<p id="capabilities-status" role="status" aria-live="polite"></p>
+<div id="capabilities-result"></div>
+</section>
 <section id="camera-management" hidden><h2>Agregar cámara</h2><form id="camera">
 <label>Nombre<input name="name" required placeholder="Acceso principal"></label>
 <label>Conexión<select name="mode" id="mode"><option value="onvif">ONVIF · IP y credenciales</option><option value="webhook">HTTP · La cámara envía eventos</option></select></label>

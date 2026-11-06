@@ -8,6 +8,61 @@ let pollBusy = false, loadsInFlight = 0, olderBusy = false, lastUpdate = null;
 let filters = {camera: '', topic: ''};
 let canManage = false;
 let forwardingLoaded=false;
+const capabilityBusy = new Set();
+let capabilityReport = null, capabilityRequest = 0;
+
+function capabilityBlock(title, values, parent = $('#capabilities-result')) {
+  const heading = document.createElement('h3'), list = document.createElement('ul');
+  heading.textContent = title;
+  for (const value of values) {
+    const item = document.createElement('li'); item.textContent = value; list.append(item);
+  }
+  parent.append(heading, list);
+}
+async function inspectCapabilities(camera) {
+  if (capabilityBusy.has(camera.id) || document.hidden) return;
+  capabilityBusy.add(camera.id);
+  const request = ++capabilityRequest;
+  capabilityReport = null;
+  $('#capabilities-panel').hidden = false;
+  $('#capabilities-download').hidden = true;
+  $('#capabilities-result').replaceChildren();
+  $('#capabilities-title').textContent = 'Capacidades · ' + camera.name;
+  $('#capabilities-status').textContent = 'Consultando al equipo… Puede tardar alrededor de un minuto. El colector continúa recibiendo eventos.';
+  $('#capabilities-panel').scrollIntoView?.({behavior: 'smooth', block: 'start'});
+  try {
+    const report = await api('/api/cameras/' + camera.id + '/capabilities', {method: 'POST'});
+    if (request !== capabilityRequest) return;
+    capabilityReport = report;
+    $('#capabilities-status').textContent = 'Consulta finalizada · ' + new Date(report.checked_at).toLocaleString();
+    capabilityBlock('Resumen', report.summary);
+    if (Object.keys(report.device).length) capabilityBlock('Equipo', Object.entries(report.device).map(([key, value]) => ({Manufacturer:'Fabricante',Model:'Modelo',FirmwareVersion:'Firmware'}[key] || key) + ': ' + value));
+    capabilityBlock('Eventos anunciados por la cámara', report.event_topics.length ? report.event_topics.map(topic => topic.topic + (topic.properties.length ? ' · ' + topic.properties.map(p => p.group + ': ' + p.name + (p.type ? ' (' + p.type + ')' : '')).join(', ') : '')) : ['No confirmados por esta consulta.']);
+    capabilityBlock('Campos de metadatos anunciados (muestra ONVIF)', report.metadata_fields.length ? report.metadata_fields : ['No se obtuvo una muestra de campos.']);
+    capabilityBlock('Datos realmente recibidos · últimos ' + report.observed.sample_count + ' eventos', [...report.observed.topics.map(t => 'Evento: ' + t), ...report.observed.fields].length ? [...report.observed.topics.map(t => 'Evento: ' + t), ...report.observed.fields] : ['Sin muestras disponibles.']);
+    capabilityBlock('Alcance del resultado', report.limitations);
+    const heading = document.createElement('h3'); heading.textContent = 'Respuestas de las consultas'; $('#capabilities-result').append(heading);
+    for (const query of report.queries) {
+      const details = document.createElement('details'), summary = document.createElement('summary'), pre = document.createElement('pre');
+      summary.textContent = query.operation + ' · ' + query.status;
+      pre.textContent = query.response || query.detail || 'Sin respuesta';
+      if (query.truncated) pre.textContent += '\n[Respuesta recortada a 64 KiB]';
+      details.append(summary, pre); $('#capabilities-result').append(details);
+    }
+    $('#capabilities-download').hidden = false;
+  } catch (error) {
+    if (request === capabilityRequest) $('#capabilities-status').textContent = 'No se pudo completar la consulta: ' + error.message;
+  } finally {
+    capabilityBusy.delete(camera.id);
+  }
+}
+$('#capabilities-close').onclick = () => { ++capabilityRequest; capabilityReport = null; $('#capabilities-panel').hidden = true; };
+$('#capabilities-download').onclick = () => {
+  if (!capabilityReport) return;
+  const url = URL.createObjectURL(new Blob([JSON.stringify(capabilityReport, null, 2)], {type: 'application/json'}));
+  const link = document.createElement('a'); link.href = url; link.download = 'capacidades-' + capabilityReport.camera_id + '.json'; link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
 
 function syncConnection() {
   const onvif = $('#mode').value === 'onvif', https = $('#camera-protocol').value === 'https';
@@ -68,6 +123,11 @@ function cell(row, value) {
 async function refresh() {
   const status = await api('/api/status');
   canManage = status.access_role !== 'viewer';
+  if (!canManage) {
+    ++capabilityRequest; capabilityReport = null;
+    $('#capabilities-panel').hidden = true;
+    $('#capabilities-result').replaceChildren();
+  }
   $('#camera-management').hidden = !canManage;
   $('#access-note').textContent = canManage ? 'Acceso de administración.' : 'Solo consulta · Puedes ver y descargar eventos. La configuración de cámaras está protegida.';
   $('#total').textContent = status.events + ' eventos en la cola local';
@@ -99,6 +159,15 @@ async function refresh() {
     };
     const actions = cell(row, '');
     if (canManage) {
+      const inspect = document.createElement('button');
+      inspect.className = 'secondary'; inspect.textContent = capabilityBusy.has(camera.id) ? 'Consultando…' : 'Consultar capacidades';
+      inspect.disabled = capabilityBusy.has(camera.id);
+      inspect.onclick = async () => {
+        inspect.disabled = true; inspect.textContent = 'Consultando…';
+        try { await inspectCapabilities(camera); }
+        finally { inspect.disabled = false; inspect.textContent = 'Consultar capacidades'; }
+      };
+      actions.append(inspect);
       if (camera.mode === 'onvif') {
         const metadata = document.createElement('button');
         metadata.className = 'secondary'; metadata.textContent = 'Metadatos IA';

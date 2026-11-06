@@ -18,6 +18,9 @@ NS = {
     'tds': 'http://www.onvif.org/ver10/device/wsdl',
     'tt': 'http://www.onvif.org/ver10/schema',
     'tev': 'http://www.onvif.org/ver10/events/wsdl',
+    'trt': 'http://www.onvif.org/ver10/media/wsdl',
+    'tr2': 'http://www.onvif.org/ver20/media/wsdl',
+    'tan': 'http://www.onvif.org/ver20/analytics/wsdl',
     'wsnt': 'http://docs.oasis-open.org/wsn/b-2',
     'wsse': 'http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd',
     'wsu': 'http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd',
@@ -70,7 +73,7 @@ class OnvifClient:
         self.reference_parameters = []
         self.offset = camera.get('clock_offset_seconds', 0)
 
-    def call(self, url, action, body_name, fields=(), reference=False):
+    def call(self, url, action, body_name, fields=(), reference=False, timeout=(8, 40)):
         parsed = urlparse(url)
         if parsed.scheme not in ('http', 'https') or not parsed.hostname or parsed.username or parsed.password:
             raise ValueError('La cámara devolvió una dirección ONVIF inválida')
@@ -100,7 +103,7 @@ class OnvifClient:
             element(body, name, value)
         with self.session.post(url, data=ET.tostring(envelope, encoding='utf-8', xml_declaration=True),
                                headers={'Content-Type': f'application/soap+xml; charset=utf-8; action="{action}"'},
-                               timeout=(8, 40), verify=self.camera['verify_tls'],
+                               timeout=timeout, verify=self.camera['verify_tls'],
                                allow_redirects=False, stream=True) as response:
             chunks, length = [], 0
             for chunk in response.iter_content(65536):

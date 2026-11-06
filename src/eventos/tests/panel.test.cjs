@@ -43,6 +43,30 @@ function setup(initial) {
 }
 const settle=()=>new Promise(resolve=>setImmediate(resolve));
 
+test('capability lookup is on demand, prevents duplicates, and ignores closed results',async()=>{
+  const app=setup([]);await app.get('#connect').onclick();
+  assert.equal(app.requests.filter(url=>url.includes('/capabilities')).length,0);
+  let complete, calls=0;
+  app.setFetch(async()=>{calls++;return new Promise(resolve=>{complete=resolve;});});
+  const pending=app.context.inspectCapabilities({id:'one',name:'Entrada'});
+  assert.equal(app.get('#capabilities-panel').hidden,false);
+  assert.match(app.get('#capabilities-status').textContent,/Consultando/);
+  await app.context.inspectCapabilities({id:'one',name:'Entrada'});assert.equal(calls,1);
+  app.get('#capabilities-close').onclick();
+  complete({ok:true,json:async()=>({})});await pending;
+  assert.equal(app.get('#capabilities-panel').hidden,true);
+  assert.equal(vm.runInContext('capabilityReport',app.context),null);
+});
+
+test('capability failure explains the error and allows retry',async()=>{
+  const app=setup([]);
+  app.setFetch(async()=>({ok:false,json:async()=>({detail:'Sin conexión'})}));
+  await app.context.inspectCapabilities({id:'one',name:'Entrada'});
+  assert.match(app.get('#capabilities-status').textContent,/Sin conexión/);
+  assert.equal(app.get('#capabilities-download').hidden,true);
+  assert.equal(vm.runInContext('capabilityBusy.size',app.context),0);
+});
+
 test('simplified WiseAI JSON preserves synthetic attributes, repeated values and original record',()=>{
   const sample=JSON.parse(fs.readFileSync(path.join(__dirname,'fixtures/wiseai.json'),'utf8'));
   const app=setup([]);

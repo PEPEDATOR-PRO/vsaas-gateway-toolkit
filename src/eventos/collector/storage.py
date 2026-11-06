@@ -199,6 +199,21 @@ class Store:
             result.append(value)
         return result
 
+    def capability_samples(self, camera_id, max_bytes=2 * 1024 * 1024):
+        """Bound diagnostic memory without loading original bodies or oversized XML."""
+        result, used = [], 0
+        with self.connect() as db:
+            candidates = db.execute('''SELECT id, length(CAST(metadata AS BLOB)) AS bytes
+                FROM events WHERE camera_id=? ORDER BY id DESC LIMIT 100''', (camera_id,)).fetchall()
+            for candidate in candidates:
+                if used + candidate['bytes'] > max_bytes:
+                    continue
+                row = db.execute('SELECT topic, metadata FROM events WHERE id=?', (candidate['id'],)).fetchone()
+                if row is not None:
+                    result.append({'topic': row['topic'], 'metadata': json.loads(row['metadata'])})
+                    used += candidate['bytes']
+        return result
+
     def count(self):
         with self.connect() as db:
             return db.execute('SELECT count(*) FROM events').fetchone()[0]
