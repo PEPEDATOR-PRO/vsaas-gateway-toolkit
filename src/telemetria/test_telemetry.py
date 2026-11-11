@@ -123,6 +123,28 @@ class CollectorTests(unittest.TestCase):
         self.store.receive(report(), self.registration['token'])
         self.assertEqual(self.store.status()['alerts'][0]['state'], 'recovered')
 
+    def test_reader_refreshes_clock_for_report_written_by_another_instance(self):
+        self.store.receive(report(), self.registration['token'])
+        previous_mono = self.store.last_monotonic['synthetic-gateway']
+        self.now += 121
+        with patch.object(collector.time, 'monotonic', return_value=previous_mono+121):
+            self.assertEqual(self.store.status()['devices'][0]['state'], 'offline')
+        other = collector.Store(Path(self.folder.name)/'test.sqlite3', clock=lambda: self.now)
+        other.receive(report(), self.registration['token'])
+        device = self.store.status()['devices'][0]
+        self.assertEqual(device['state'], 'online')
+        self.assertEqual(device['age_seconds'], 0)
+        self.assertEqual(sum(a['state']=='offline' for a in self.store.status()['alerts']), 1)
+
+    def test_exclusive_lock_rejects_second_process_and_releases(self):
+        path = Path(self.folder.name)/'collector.lock'
+        with collector.exclusive(path):
+            with self.assertRaises(ValueError):
+                with collector.exclusive(path):
+                    self.fail('Duplicate lock accepted')
+        with collector.exclusive(path):
+            pass
+
     def test_no_first_report_also_alerts_and_rotate_revokes_old_key(self):
         with patch.object(collector.time, 'monotonic', return_value=self.store.last_monotonic['synthetic-gateway'] + 121):
             self.assertEqual(self.store.status()['devices'][0]['state'], 'offline')

@@ -6,6 +6,7 @@ import hashlib
 import hmac
 import ipaddress
 import json
+import os
 from pathlib import Path
 import secrets
 import sqlite3
@@ -24,6 +25,7 @@ class Store:
         self.path, self.clock = str(path), clock
         self.lock = threading.RLock()
         self.last_monotonic = {}
+        self.receipt_times = {}
         with self.db() as db:
             db.executescript('''
                 CREATE TABLE IF NOT EXISTS devices(id TEXT PRIMARY KEY, name TEXT NOT NULL, token_hash TEXT NOT NULL,
@@ -96,6 +98,7 @@ class Store:
             if row['state'] != 'online':
                 db.execute('INSERT INTO alerts(device,at,state) VALUES(?,?,?)', (identity, now, 'recovered' if row['state'] == 'offline' else 'first_report'))
         self.last_monotonic[identity] = time.monotonic()
+        self.receipt_times[identity] = now
 
     def status(self):
         now, mono = self.clock(), time.monotonic()
@@ -103,7 +106,12 @@ class Store:
             rows = db.execute('SELECT * FROM devices ORDER BY name').fetchall()
             devices = []
             for row in rows:
-                age = max(0, now - (row['received'] if row['received'] is not None else row['created']))
+                anchor = row['received'] if row['received'] is not None else row['created']
+                age = max(0, now - anchor)
+                if row['received'] is not None and self.receipt_times.get(row['id']) != anchor:
+                    # A report may have been committed by another/previous process.
+                    self.last_monotonic[row['id']] = mono - age
+                    self.receipt_times[row['id']] = anchor
                 elapsed = mono - self.last_monotonic[row['id']] if row['id'] in self.last_monotonic else age
                 state = 'offline' if elapsed >= row['timeout'] else ('online' if row['received'] is not None else 'pending')
                 if state == 'offline' and row['state'] != state:
@@ -230,6 +238,64 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(503, {'error': 'Almacenamiento ocupado o sin capacidad; no se confirmó la recepción.'})
 
 
+@contextlib.contextmanager
+def exclusive(path):
+    handle = Path(path).open('a+b')
+    if handle.tell() == 0:
+        handle.write(b'0')
+        handle.flush()
+    handle.seek(0)
+    try:
+        if os.name == 'nt':
+            import msvcrt
+            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        handle.close()
+        raise ValueError('Ya hay un colector usando este directorio de datos. Detén la instancia anterior antes de iniciar otra.') from None
+    try:
+        yield
+    finally:
+        handle.close()
+
+
+def serve(args, token):
+    store = Store(args.data / 'health.sqlite3')
+    servers = []
+    stop = threading.Event()
+    try:
+        servers.append(Server((args.listen, args.port), store, token))
+        if not ipaddress.ip_address(args.listen).is_loopback and args.listen != '0.0.0.0':
+            # Both entry points share one Store and one monotonic clock cache.
+            servers.append(Server(('127.0.0.1', args.port), store, token))
+
+        def watch():
+            while not stop.wait(5):
+                try:
+                    store.status()
+                except (OSError, sqlite3.Error):
+                    pass
+
+        threading.Thread(target=watch, daemon=True).start()
+        for server in servers[1:]:
+            threading.Thread(target=server.serve_forever, daemon=True).start()
+        print('Colector local/VPN: http://' + args.listen + ':' + str(args.port), flush=True)
+        print('Panel local: http://127.0.0.1:' + str(args.port), flush=True)
+        print('Llave del panel: ejecuta el mismo comando con --show-key. Mantén esta ventana abierta.', flush=True)
+        try:
+            servers[0].serve_forever()
+        except KeyboardInterrupt:
+            pass
+    finally:
+        stop.set()
+        for server in servers[1:]:
+            server.shutdown()
+        for server in servers:
+            server.server_close()
+
+
 def main():
     parser = argparse.ArgumentParser(description='Colector de salud local/VPN; no publicar directamente en Internet.')
     parser.add_argument('--listen', default='127.0.0.1')
@@ -249,28 +315,12 @@ def main():
     if args.show_key:
         print(token)
         return
-    store = Store(args.data / 'health.sqlite3')
-    server = Server((args.listen, args.port), store, token)
-    stop = threading.Event()
-
-    def watch():
-        while not stop.wait(5):
-            try:
-                store.status()
-            except (OSError, sqlite3.Error):
-                pass
-
-    threading.Thread(target=watch, daemon=True).start()
-    print('Colector local/VPN: http://' + args.listen + ':' + str(args.port), flush=True)
-    print('Llave del panel: ejecuta el mismo comando con --show-key. Mantén esta ventana abierta.', flush=True)
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        pass
-    finally:
-        stop.set()
-        server.server_close()
+    with exclusive(args.data / 'collector.lock'):
+        serve(args, token)
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except (ValueError, OSError) as error:
+        raise SystemExit(str(error))

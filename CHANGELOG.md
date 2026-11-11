@@ -1,5 +1,10 @@
 # Cambios
 
+## 0.6.2 — 2026-11-11
+
+- Colector con un solo proceso por directorio de datos y accesos local/VPN compartiendo estado.
+- El cálculo de ausencia se actualiza al detectar una recepción nueva en la base, evitando estados desconectados obsoletos tras recuperar reportes.
+
 ## 0.6.1 — 2026-11-11
 
 - Confirmación de guardado junto al botón de Telemetría, relectura de configuración y aviso Llave guardada sin exponerla.
