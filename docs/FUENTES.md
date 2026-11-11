@@ -12,3 +12,5 @@ Estas referencias explican las interfaces utilizadas. La compatibilidad final se
 - [OpenSSH Server en Ubuntu](https://ubuntu.com/server/docs/how-to/security/openssh-server/)
 - [Descubrimiento de equipos con Nmap](https://nmap.org/book/man-host-discovery.html)
 - [Control de recursos con systemd](https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html)
+
+- [Servidor HTTP local de Python y límites de exposición](https://docs.python.org/3/library/http.server.html)

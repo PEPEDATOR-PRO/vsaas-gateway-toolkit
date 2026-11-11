@@ -124,3 +124,7 @@ Para actualizar esta tarjeta en un equipo existente: `git pull --ff-only` y `sud
 
 
 El módulo `resumen` puede actualizarse sin `config/equipo.json`: no lee ni sobrescribe el perfil del equipo y no modifica la configuración de la VPN. Si aparece un error indicando que falta ese archivo al actualizar Vista global, ejecuta `git pull --ff-only` y vuelve a ejecutar `sudo python3 scripts/install.py resumen`.
+
+## Reportes de salud hacia colectores
+
+El módulo opcional `telemetria` mantiene reportes de recursos, red, Salud Vsaas y VPN hacia hasta ocho destinos configurables desde Cockpit. El colector de laptop muestra ausencia de reportes y recuperación, con umbral por equipo. Consulta [instalación, configuración y prueba controlada](TELEMETRIA-SALUD.md). Cerrar Cockpit no detiene el agente; la laptop receptora debe permanecer encendida y alcanzable.

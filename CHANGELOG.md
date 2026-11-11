@@ -1,5 +1,11 @@
 # Cambios
 
+## 0.6.0 — 2026-11-11
+
+- Emisor opcional de telemetría de salud, servicio limitado y configuración de hasta ocho destinos desde Cockpit.
+- Colector de laptop LAN/VPN con reportes autenticados por equipo, recursos, red, Vsaas, VPN y avisos de ausencia/recuperación en el panel.
+- Histórico acotado, llaves independientes, sin cola de reportes antiguos y guía completa de instalación/pruebas.
+
 ## 0.5.1 — 2026-11-05
 
 - Tarjeta Información de red en Vista global: interfaz, MAC, IPv4/prefijo, segmento, gateway, máscara y método DHCP/estático cuando puede verificarse. Consulta manual sin sondeo continuo.

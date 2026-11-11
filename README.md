@@ -42,6 +42,7 @@ El Gateway Vsaas requiere sus propias credenciales de proveedor y se instala con
 | `resumen` | Tarjetas resumidas en la vista global nativa de Cockpit |
 | `observacion` | Prueba de tráfico, recursos y salud durante 24 horas |
 | `eventos` | Colector opcional ONVIF/RTSP/HTTP, cola local de 2 GB, envío JSON y acceso desde Cockpit |
+| `telemetria` | Reportes periódicos de salud a varios destinos y colector de laptop con avisos de ausencia |
 
 Los módulos de administración reutilizan el perfil local del equipo; `vxg` no requiere perfil VPN. Ejemplo para instalar solo los paneles:
 
@@ -118,3 +119,7 @@ La prueba de 24 horas continúa en el equipo después de cerrar Cockpit. Sus dat
 - [Colector de eventos adicional](docs/COLECTOR-EVENTOS.md)
 - [Mantenimiento y publicación de versiones](docs/MANTENIMIENTO.md)
 - [Fuentes técnicas](docs/FUENTES.md)
+
+## Monitoreo central de salud
+
+Instala el módulo opcional con `sudo python3 scripts/install.py telemetria`. Configura destinos en Cockpit → Telemetría de salud. Incluye un colector para laptop por LAN/VPN, con CPU, memoria, disco, red, Vsaas, VPN y alertas visuales cuando dejan de llegar reportes. Revisa el [paso a paso de telemetría y colector](docs/TELEMETRIA-SALUD.md). No usa ngrok y una instalación nueva inicia sin envíos activos.

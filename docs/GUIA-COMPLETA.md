@@ -444,8 +444,13 @@ Después de guardar una cámara aparece **Consultar capacidades** para el admini
 | `resumen` | Recursos actualizados y tarjetas en Vista global |
 | `observacion` | Sesión nueva de 24 horas, independiente del navegador |
 | `eventos` | Captura opcional ONVIF/RTSP/HTTP y acceso desde Cockpit |
+| `telemetria` | Reportes de salud a varios colectores y avisos visuales por ausencia |
 | `todo` | VPN, SSH, Cockpit, paneles y resumen si lo pide el perfil; no instala VXG ni inicia observación |
 
 `config/equipo.json` y `config/vpn-central.json` son archivos locales ignorados por Git. Los datos de cámaras permanecen en los volúmenes de Docker. La adaptación de Cockpit está en `/usr/local/share/cockpit/vsaas_system`; los recursos del toolkit en `/usr/local/share/cockpit/gateway_scanner`. La retirada reversible de las tarjetas y los respaldos están descritos en [mantenimiento](MANTENIMIENTO.md).
 
 Las imágenes y los componentes del proveedor conservan sus condiciones y requieren los accesos correspondientes. Hacer público el toolkit no entrega tokens, PSK, una cuenta de nube ni acceso a una VPN. Consulta también [instalación detallada de VXG](INSTALACION-VXG.md), [operación](OPERACION.md) y [fuentes técnicas](FUENTES.md).
+
+## 23. Enviar salud a un colector central
+
+Después de instalar Cockpit puedes ejecutar `sudo python3 scripts/install.py telemetria`, sin perfil VPN obligatorio. Cierra sesión y vuelve a entrar para ver **Herramientas → Telemetría de salud**. Registra su ID en el colector de laptop y configura URL y llave por destino. Sigue [Telemetría de salud](TELEMETRIA-SALUD.md) para iniciar el colector en Windows, validar la ruta VPN, registrar equipos y probar los avisos. Inicia desactivado; no se instala con `todo` y no utiliza la cola de eventos de cámaras.

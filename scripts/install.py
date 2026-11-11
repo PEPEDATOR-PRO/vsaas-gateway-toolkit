@@ -13,7 +13,7 @@ except ImportError:
 
 ROOT=Path(__file__).resolve().parents[1]
 CONFIG_DIR=Path('/etc/vsaas-gateway')
-MODULES=['vxg','vpn','ssh','cockpit','paneles','resumen','observacion','eventos','todo']
+MODULES=['vxg','vpn','ssh','cockpit','paneles','resumen','observacion','eventos','telemetria','todo']
 
 
 def plan(module,profile):
@@ -32,6 +32,12 @@ def main():
     args=parser.parse_args()
     if args.interactive and args.module!='vpn':parser.error('--interactive solo se utiliza con vpn')
     if args.events_ip and args.module!='eventos':parser.error('--events-ip solo se utiliza con eventos')
+    if args.module=='telemetria':
+        if args.dry_run:
+            print('Simulación: agente opcional de salud y panel de destinos. Sin perfil de VPN; no activa envíos nuevos.')
+            return
+        subprocess.run([sys.executable,str(ROOT/'scripts/install_telemetry.py')],check=True)
+        return
     if args.module=='resumen':
         if args.dry_run:
             print('Simulación: actualizar recursos y tarjeta de Vista global. No requiere perfil ni modifica la VPN.')

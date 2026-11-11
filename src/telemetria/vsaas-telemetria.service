@@ -1,0 +1,26 @@
+[Unit]
+Description=Reportes salientes de salud Vsaas a colectores configurados
+Wants=network-online.target
+After=network-online.target docker.service strongswan.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /usr/local/libexec/vsaas-telemetria/agent.py run
+Restart=on-failure
+RestartSec=15
+UMask=0077
+StateDirectory=vsaas-telemetria
+MemoryHigh=96M
+MemoryMax=160M
+CPUQuota=20%
+TasksMax=48
+TimeoutStopSec=10
+KillMode=control-group
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/vsaas-telemetria
+
+[Install]
+WantedBy=multi-user.target
