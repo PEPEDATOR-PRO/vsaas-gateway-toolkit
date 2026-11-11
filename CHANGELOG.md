@@ -1,5 +1,10 @@
 # Cambios
 
+## 0.6.1 — 2026-11-11
+
+- Confirmación de guardado junto al botón de Telemetría, relectura de configuración y aviso Llave guardada sin exponerla.
+- Validación visible de llaves nuevas, conservación al volver a guardar y explicación de ID/llaves administrativas y de envío.
+
 ## 0.6.0 — 2026-11-11
 
 - Emisor opcional de telemetría de salud, servicio limitado y configuración de hasta ocho destinos desde Cockpit.

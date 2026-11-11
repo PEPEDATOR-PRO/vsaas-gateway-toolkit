@@ -24,7 +24,12 @@ sudo python3 scripts/install.py telemetria
 
 No necesita `config/equipo.json`. No modifica Docker, cámaras ni la VPN. Genera un ID único del equipo y guarda sus destinos en `/etc/vsaas-gateway/telemetria.json` con permisos restringidos. El servicio `vsaas-telemetria` arranca automáticamente, pero una instalación nueva queda **sin destinos y con envío desactivado**. Las actualizaciones conservan configuración y llaves.
 
-Cierra sesión en Cockpit y vuelve a entrar. Abre **Herramientas → Telemetría de salud**, activa acceso administrativo, pulsa **Consultar configuración** y copia el ID del Gateway. Este ID es independiente del leftid de IPsec.
+Cierra sesión en Cockpit y vuelve a entrar. Abre **Herramientas → Telemetría de salud**, activa acceso administrativo, pulsa **Consultar configuración** y copia el ID del Gateway. Este ID es independiente del leftid de IPsec. No es la IP ni el leftid (por ejemplo, `03FB2`). Si no localizas el ID en el panel, puedes mostrarlo sin llaves en Ubuntu:
+
+```bash
+sudo python3 -c "import json; print(json.load(open('/etc/vsaas-gateway/telemetria.json'))['device_id'])"
+```
+
 
 ## 2. Iniciar el colector en la laptop
 
@@ -77,7 +82,7 @@ En **Telemetría de salud → Consultar configuración**:
 5. Activa ese destino y el envío periódico general. Pulsa **Guardar configuración**.
 6. Espera un ciclo y vuelve a **Consultar configuración** para comprobar la confirmación HTTP. Comprueba también la tarjeta en el colector.
 
-Para un segundo colector repite el registro del **mismo ID** en ese otro colector y agrega otro destino con su propia llave. Se admiten hasta ocho destinos. Cada uno se intenta independientemente: un destino caído no impide entregar a los demás. Puedes desactivar un destino, quitarlo o editarlo. Dejar su llave vacía conserva la existente solo si la URL sigue siendo idéntica; cambiar la URL exige pegar la llave otra vez. Los cambios se aplican al siguiente ciclo, sin reiniciar Ubuntu.
+Para un segundo colector repite el registro del **mismo ID** en ese otro colector y agrega otro destino con su propia llave. Se admiten hasta ocho destinos. Cada uno se intenta independientemente: un destino caído no impide entregar a los demás. Puedes desactivar un destino, quitarlo o editarlo. Dejar su llave vacía conserva la existente solo si la URL sigue siendo idéntica; cambiar la URL exige pegar la llave otra vez. Los cambios se aplican al siguiente ciclo, sin reiniciar Ubuntu. Junto a Guardar aparece el resultado: **Guardado y verificado** confirma que el Gateway releyó la configuración. El campo de llave se vacía intencionalmente y muestra **Llave guardada**; no significa que se borró del archivo. Una confirmación de guardado no equivale a recepción de reportes. Para destinos nuevos o al cambiar URL, la llave de envío es obligatoria; no uses la llave administrativa del panel.
 
 ### IP de origen para IPsec
 

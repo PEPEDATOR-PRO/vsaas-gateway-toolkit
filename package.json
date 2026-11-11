@@ -1,6 +1,6 @@
 {
   "name": "vsaas-gateway-toolkit",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "private": true,
   "description": "Administración y observabilidad de Gateways Ubuntu con VXG",
   "scripts": {"test:ui": "node tools/test-ui.cjs"},
