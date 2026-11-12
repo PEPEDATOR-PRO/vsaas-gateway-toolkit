@@ -378,13 +378,24 @@ Si el reloj salta tras un reinicio, compara tiempos de actividad y registros mon
 cd ~/vsaas-gateway-toolkit
 git status --short
 git pull --ff-only
-sudo python3 scripts/install.py paneles
 sudo python3 scripts/install.py resumen
 ```
 
 Cierra sesión en Cockpit y vuelve a entrar. El módulo `resumen` ya incluye la actualización de recursos, por lo que ejecutarlo solo también sirve para renovar las tarjetas. Los perfiles locales no se sustituyen al descargar el código.
 
 No ejecutes `todo` para una actualización visual: también aplica VPN, SSH y Cockpit. No repitas `vxg` sobre un Gateway en uso. No reinstales el recolector durante una sesión que deseas conservar; exporta y revisa primero el estado.
+
+### Si APT indica que dpkg está ocupado
+
+Si aparece `lock-frontend` retenido por `unattended-upgr`, Ubuntu está instalando actualizaciones automáticas. No borres el lock, no mates dpkg ni desactives las actualizaciones. Los instaladores esperan hasta 300 segundos por el bloqueo de dpkg; si sigue ocupado, terminan con un aviso y puedes reintentar después.
+
+Para revisar el avance en Ubuntu:
+
+```bash
+sudo tail -n 20 /var/log/unattended-upgrades/unattended-upgrades.log
+```
+
+Cuando termine, actualiza el repositorio y ejecuta **solo** `sudo python3 scripts/install.py resumen` para los paneles y Vista global. No es necesario reinstalar VXG, repetir `todo` ni borrar los volúmenes. El error 100 de APT también puede tener otras causas: revisa siempre sus líneas anteriores.
 
 ### Actualizar solo el colector y agregar la consulta de capacidades
 

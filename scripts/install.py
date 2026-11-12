@@ -104,6 +104,14 @@ def main():
     print('Instalación aplicada. Completa las comprobaciones de docs/INSTALACION.md.')
 
 
-if __name__=='__main__':
+def cli():
     try:main()
     except (ValueError,FileNotFoundError) as exc:raise SystemExit(str(exc))
+    except subprocess.CalledProcessError as exc:
+        message='No se completó la instalación (código '+str(exc.returncode)+'). Revisa el mensaje anterior y vuelve a ejecutar solo el módulo afectado.'
+        if exc.returncode==100:
+            message+=' Si APT indica que dpkg está bloqueado por unattended-upgrades, espera a que termine la actualización automática. No borres archivos lock ni detengas dpkg por la fuerza.'
+        raise SystemExit(message) from None
+
+
+if __name__=='__main__':cli()

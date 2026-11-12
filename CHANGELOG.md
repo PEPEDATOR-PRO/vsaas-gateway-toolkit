@@ -1,5 +1,11 @@
 # Cambios
 
+## 0.6.3 — 2026-11-12
+
+- Instalaciones de paquetes con espera de hasta 300 s por el bloqueo de dpkg, para convivir con actualizaciones automáticas.
+- Mensaje de error del instalador sin traceback ni argumentos privados y guía de recuperación sin eliminar locks.
+- Actualización visual documentada con un solo módulo resumen, que también renueva los paneles.
+
 ## 0.6.2 — 2026-11-11
 
 - Colector con un solo proceso por directorio de datos y accesos local/VPN compartiendo estado.

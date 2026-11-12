@@ -16,7 +16,8 @@ if ! command -v cockpit-bridge >/dev/null 2>&1; then
     exit 1
 fi
 apt-get update
-apt-get install --no-install-recommends -y python3 arp-scan nmap
+echo 'Si Ubuntu esta actualizando paquetes, se esperara hasta 5 minutos para liberar dpkg.'
+apt-get -o DPkg::Lock::Timeout=300 install --no-install-recommends -y python3 arp-scan nmap
 if [ -d /usr/local/share/cockpit/gateway_scanner ]; then
     backup="/var/backups/gateway-scanner-$(date +%Y%m%d-%H%M%S)"
     install -d -m 700 "$backup"

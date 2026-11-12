@@ -43,7 +43,7 @@ printf '\n' >/dev/tty
 [ -n "$vpn_key" ] || { echo 'Clave vacia. Cancelado.'; exit 1; }
 
 apt-get update
-apt-get install -y charon-systemd strongswan-swanctl
+apt-get -o DPkg::Lock::Timeout=300 install -y charon-systemd strongswan-swanctl
 install -d -m 755 /etc/swanctl/conf.d /etc/systemd/system/strongswan.service.d
 vpn_stamp=$(date +%Y%m%d-%H%M%S)
 for vpn_file in /etc/swanctl/conf.d/gateway.conf \
